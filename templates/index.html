@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}PartFinder — Find local part-time jobs{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <h1>Find legitimate part-time work near you</h1>
+    <p class="hero-sub">Pick what you're looking for, when you're free, and how far you'll travel. We search trusted job boards around Nottingham and rank the best matches.</p>
+</section>
+
+{% if not live %}
+<div class="notice" role="status">
+    <strong>Demo data.</strong> Add your free Adzuna API keys to <code>.env</code> to switch on live listings. The app works either way.
+</div>
+{% endif %}
+
+<form class="search-form" action="{{ url_for('results') }}" method="post">
+    <fieldset class="field-group">
+        <legend>What kind of job?</legend>
+        <div class="option-grid" role="radiogroup" aria-label="Job category">
+            {% for category in categories %}
+            <label class="chip">
+                <input type="radio" name="category" value="{{ category.key }}" {% if loop.first %}required{% endif %}>
+                <span>{{ category.label }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <fieldset class="field-group">
+        <legend>When are you available?</legend>
+        <div class="option-grid days" aria-label="Available days">
+            {% for day in days %}
+            <label class="chip">
+                <input type="checkbox" name="days" value="{{ day }}">
+                <span>{{ day[:3] }}</span>
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <fieldset class="field-group">
+        <legend>How far will you travel?</legend>
+        <div class="radius-row">
+            {% for r in radius_options %}
+            <label class="chip">
+                <input type="radio" name="radius" value="{{ r }}" {% if r == default_radius %}checked{% endif %}>
+                <span>{{ r }} miles</span>
+            </label>
+            {% endfor %}
+        </div>
+    </fieldset>
+
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Search Jobs</button>
+    </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+{% endblock %}

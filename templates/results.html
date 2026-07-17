@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Results — PartFinder{% endblock %}
+
+{% block content %}
+<section class="results-head">
+    <a class="back-link" href="{{ url_for('index') }}">&larr; New search</a>
+    {% if criteria %}
+    <h1>{{ category_label }} jobs within {{ criteria.radius }} miles</h1>
+    <p class="results-meta">
+        {{ jobs|length }} match{{ '' if jobs|length == 1 else 'es' }}
+        {% if criteria.days %}· available {{ criteria.days|join(', ') }}{% endif %}
+        {% if not live %}· demo data{% endif %}
+    </p>
+    {% endif %}
+</section>
+
+{% if error %}
+<div class="notice notice-error" role="alert">{{ error }}</div>
+{% elif not jobs %}
+<div class="empty-state">
+    <h2>No matching jobs right now</h2>
+    <p>Try widening your radius or choosing a different category. We only show roles posted within the last two weeks.</p>
+    <a class="btn btn-primary" href="{{ url_for('index') }}">Adjust search</a>
+</div>
+{% else %}
+<div class="table-wrap">
+    <table class="results-table">
+        <thead>
+            <tr>
+                <th scope="col">Job Title</th>
+                <th scope="col">Company</th>
+                <th scope="col">Distance</th>
+                <th scope="col">Pay</th>
+                <th scope="col">Type</th>
+                <th scope="col">Posted</th>
+                <th scope="col">Source</th>
+                <th scope="col"><span class="sr-only">Apply</span></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td data-label="Job Title" class="cell-title">{{ job.title }}</td>
+                <td data-label="Company">{{ job.company }}</td>
+                <td data-label="Distance">{{ job.distance_display }}</td>
+                <td data-label="Pay">{{ job.pay }}</td>
+                <td data-label="Type">{{ job.employment_type }}</td>
+                <td data-label="Posted">{{ job.posted | relative_date }}</td>
+                <td data-label="Source">{{ job.source }}</td>
+                <td data-label="Apply" class="cell-apply">
+                    <a class="btn btn-apply" href="{{ job.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}
