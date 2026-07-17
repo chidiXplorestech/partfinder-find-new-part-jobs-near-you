@@ -86,6 +86,19 @@ def annual_to_hourly(annual: Optional[float]) -> Optional[float]:
     return annual / _FULL_TIME_HOURS_PER_YEAR
 
 
+def hourly_rate(salary: Optional[float]) -> Optional[float]:
+    """Return an hourly rate from a salary figure.
+
+    Small numbers (< 100) are assumed to already be hourly; larger numbers are
+    treated as an annual salary and converted. Returns ``None`` when unknown.
+    """
+    if not salary:
+        return None
+    if salary < 100:
+        return salary
+    return annual_to_hourly(salary)
+
+
 def format_pay(
     salary_min: Optional[float],
     salary_max: Optional[float] = None,

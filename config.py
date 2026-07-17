@@ -101,7 +101,9 @@ class Config:
     # --- Pay guidance (UK, approximate current rates) ---
     # Used to prioritise entry-level pay and to exclude clearly-senior salaries.
     national_minimum_wage_hourly: float = 8.60
-    national_living_wage_hourly: float = 11.44
+    national_living_wage_hourly: float = 12.71
+    # Hard floor: never show roles paying below this hourly rate.
+    minimum_hourly_pay: float = 12.71
     # Annual salary above which a role is treated as senior (ranking/filtering).
     entry_level_salary_cap: float = 45000.0
 

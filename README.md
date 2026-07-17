@@ -20,7 +20,10 @@ Searches are centred on **57 Albert Grove, Nottingham, NG7 1NZ**.
   clone. Add keys to switch on live results.
 - **Student-first filtering.** Keeps part-time, weekend, casual, student,
   temporary and zero-hour roles; rejects full-time, senior, manager, graduate
-  and director roles. Never shows anything older than 14 days.
+  and director roles. Enforces a **£12.71/hour pay floor** and never shows
+  anything older than 14 days.
+- **Gen Z / Tinder-inspired UI.** Editorial serif headlines, the flame
+  gradient, pill controls, and swipe-style result cards.
 - **Transparent ranking** by distance → posting date → availability match →
   pay → source reliability.
 - **Minimal, fast, responsive UI** — no frontend frameworks, no clutter.
@@ -92,6 +95,7 @@ python -m pytest tests/
 | `ADZUNA_APP_ID`   | No       | _(none)_               | Adzuna API app id. Enables live job data.           |
 | `ADZUNA_APP_KEY`  | No       | _(none)_               | Adzuna API app key. Enables live job data.          |
 | `SECRET_KEY`      | No       | `dev-secret-change-me` | Flask session/flash signing key.                    |
+| _pay floor_       | n/a      | `£12.71/hour`          | Set in `config.py` (`minimum_hourly_pay`).          |
 | `DB_PATH`         | No       | `partfinder.sqlite3`   | SQLite database file path.                           |
 | `RESULTS_LIMIT`   | No       | `50`                   | Max number of jobs shown per search.                |
 | `FLASK_DEBUG`     | No       | `0`                    | Set to `1` for Flask debug mode during development. |

@@ -3,18 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#111111">
     <meta name="description" content="PartFinder — legitimate local part-time jobs for students around Nottingham.">
     <title>{% block title %}PartFinder{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
     <header class="site-header">
         <div class="container header-inner">
-            <a class="brand" href="{{ url_for('index') }}">
-                <span class="brand-mark">PartFinder</span>
+            <a class="brand" href="{{ url_for('index') }}" aria-label="PartFinder home">
+                <span class="brand-flame" aria-hidden="true">
+                    <svg viewBox="0 0 24 32" width="20" height="26">
+                        <path d="M12 0c1 5 6 7 6 13a6 6 0 0 1-12 0c0-2 .8-3.4 1.6-4.6C6 12 4 14 4 18a8 8 0 0 0 16 0C20 9 13.5 6 12 0Z" fill="url(#flame)"/>
+                        <defs>
+                            <linearGradient id="flame" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#FF5069"/>
+                                <stop offset="1" stop-color="#FF7D54"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </span>
+                <span class="brand-mark">PARTFINDER</span>
             </a>
-            <p class="brand-tagline">Local part-time work for Nottingham students</p>
+            <p class="brand-tagline">Part-time work for Nottingham students</p>
         </div>
     </header>
 
@@ -24,7 +38,7 @@
 
     <footer class="site-footer">
         <div class="container">
-            <p>Searching around {{ origin }}. Only part-time, casual, and student-friendly roles posted within the last two weeks.</p>
+            <p>Searching around {{ origin }}. Part-time, casual and student-friendly roles only &mdash; paying £12.71/hour and up, posted within the last two weeks.</p>
         </div>
     </footer>
 

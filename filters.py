@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from config import Config
 from models import Job, SearchCriteria
-from utils import contains_any, days_since, haversine_miles
+from utils import contains_any, days_since, haversine_miles, hourly_rate
 
 
 def apply_distance(jobs: List[Job], config: Config) -> None:
@@ -43,14 +43,19 @@ def filter_by_date(jobs: List[Job], max_age_days: int) -> List[Job]:
 
 
 def filter_by_salary(jobs: List[Job], config: Config) -> List[Job]:
-    """Exclude clearly-senior pay; keep entry-level and unspecified pay.
+    """Enforce the pay floor and exclude clearly-senior pay.
 
-    Pay is primarily a ranking signal (entry-level is prioritised), but a role
-    advertising a salary well above the entry-level cap is almost certainly a
-    senior position and is removed here to reinforce the reject rules.
+    Only roles paying at least ``config.minimum_hourly_pay`` (£12.71/hour) are
+    kept when a rate is known. Roles advertising a salary well above the
+    entry-level cap are treated as senior and removed. Listings with no stated
+    pay are kept (they cannot be judged against the floor and are common for
+    casual roles) and are ranked conservatively.
     """
     kept: List[Job] = []
     for job in jobs:
+        rate = hourly_rate(job.salary_min)
+        if rate is not None and rate < config.minimum_hourly_pay:
+            continue
         if job.salary_min and job.salary_min > config.entry_level_salary_cap:
             continue
         kept.append(job)

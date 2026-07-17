@@ -36,8 +36,8 @@ def _job(**overrides) -> Job:
         description="Part-time weekend role, student-friendly.",
         latitude=CONFIG.origin_lat,
         longitude=CONFIG.origin_lng,
-        salary_min=11.44,
-        salary_max=11.44,
+        salary_min=12.71,
+        salary_max=12.71,
         source_reliability=0.85,
     )
     defaults.update(overrides)
@@ -74,11 +74,21 @@ def test_filter_by_distance_respects_radius():
 
 
 def test_filter_by_salary_excludes_senior_pay():
-    entry = _job(salary_min=12000)
+    entry = _job(salary_min=25000)  # ~£12.82/hour: above floor, below cap.
     senior = _job(salary_min=90000)
     result = filters.filter_by_salary([entry, senior], CONFIG)
     assert entry in result
     assert senior not in result
+
+
+def test_filter_by_salary_enforces_pay_floor():
+    at_floor = _job(salary_min=12.71)
+    below_floor = _job(salary_min=11.44)
+    unknown = _job(salary_min=None)  # Unknown pay is kept.
+    result = filters.filter_by_salary([at_floor, below_floor, unknown], CONFIG)
+    assert at_floor in result
+    assert unknown in result
+    assert below_floor not in result
 
 
 def test_ranking_prefers_closer_and_more_recent():

@@ -3,20 +3,21 @@
 {% block title %}PartFinder — Find local part-time jobs{% endblock %}
 
 {% block content %}
-<section class="hero">
-    <h1>Find legitimate part-time work near you</h1>
-    <p class="hero-sub">Pick what you're looking for, when you're free, and how far you'll travel. We search trusted job boards around Nottingham and rank the best matches.</p>
+<section class="hero reveal">
+    <p class="hero-eyebrow">It starts with a shift</p>
+    <h1>Swipe right on<br><span class="hero-accent">real</span> part-time work</h1>
+    <p class="hero-sub">Pick your vibe, your free days, and how far you'll go. We scan trusted job boards around Nottingham and surface only legit roles paying £12.71/hour and up.</p>
 </section>
 
 {% if not live %}
-<div class="notice" role="status">
-    <strong>Demo data.</strong> Add your free Adzuna API keys to <code>.env</code> to switch on live listings. The app works either way.
+<div class="notice reveal" role="status">
+    <strong>Demo mode.</strong> Drop your free Adzuna API keys into <code>.env</code> for live listings. Works either way.
 </div>
 {% endif %}
 
-<form class="search-form" action="{{ url_for('results') }}" method="post">
+<form class="search-form reveal" action="{{ url_for('results') }}" method="post">
     <fieldset class="field-group">
-        <legend>What kind of job?</legend>
+        <legend><span class="legend-index">01</span> What are you into?</legend>
         <div class="option-grid" role="radiogroup" aria-label="Job category">
             {% for category in categories %}
             <label class="chip">
@@ -28,10 +29,10 @@
     </fieldset>
 
     <fieldset class="field-group">
-        <legend>When are you available?</legend>
+        <legend><span class="legend-index">02</span> When are you free?</legend>
         <div class="option-grid days" aria-label="Available days">
             {% for day in days %}
-            <label class="chip">
+            <label class="chip chip-day">
                 <input type="checkbox" name="days" value="{{ day }}">
                 <span>{{ day[:3] }}</span>
             </label>
@@ -40,19 +41,19 @@
     </fieldset>
 
     <fieldset class="field-group">
-        <legend>How far will you travel?</legend>
+        <legend><span class="legend-index">03</span> How far will you go?</legend>
         <div class="radius-row">
             {% for r in radius_options %}
             <label class="chip">
                 <input type="radio" name="radius" value="{{ r }}" {% if r == default_radius %}checked{% endif %}>
-                <span>{{ r }} miles</span>
+                <span>{{ r }} mi</span>
             </label>
             {% endfor %}
         </div>
     </fieldset>
 
     <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Search Jobs</button>
+        <button type="submit" class="btn btn-primary">Find my matches</button>
     </div>
 </form>
 {% endblock %}

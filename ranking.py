@@ -19,7 +19,7 @@ from typing import List
 
 from config import Config
 from models import Job, SearchCriteria
-from utils import annual_to_hourly, contains_any, days_since
+from utils import contains_any, days_since, hourly_rate
 
 # Weights in strict priority order; they sum to 1.0 for an interpretable score.
 WEIGHTS = {
@@ -67,12 +67,12 @@ def _availability_score(job: Job, criteria: SearchCriteria) -> float:
 
 
 def _pay_score(job: Job, config: Config) -> float:
-    """Reward entry-level / minimum-wage-friendly pay; neutral if unknown."""
-    hourly = annual_to_hourly(job.salary_min) if job.salary_min else None
+    """Reward entry-level / living-wage-friendly pay; neutral if unknown."""
+    hourly = hourly_rate(job.salary_min)
     if hourly is None:
         return 0.5
-    if hourly < config.national_minimum_wage_hourly:
-        return 0.3  # Below NMW is unattractive/likely misadvertised.
+    if hourly < config.minimum_hourly_pay:
+        return 0.3  # Below the pay floor (also filtered out earlier).
     if hourly <= config.national_living_wage_hourly * 1.5:
         return 1.0  # Squarely in the entry-level sweet spot.
     return 0.6  # Higher pay usually signals a more senior role.
