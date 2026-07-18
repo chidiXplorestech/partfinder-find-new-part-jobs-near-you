@@ -3,45 +3,90 @@
 {% block title %}Your matches — PartFinder{% endblock %}
 
 {% block content %}
-<section class="results-head">
-    <a class="back-link" href="{{ url_for('index') }}">&larr; New search</a>
-    {% if criteria %}
-    <h1>{{ category_label }} matches within {{ criteria.radius }} miles</h1>
-    <p class="results-meta">
-        {{ jobs|length }} match{{ '' if jobs|length == 1 else 'es' }}
-        {% if criteria.days %}· free {{ criteria.days|join(', ') }}{% endif %}
-        {% if not live %}· demo data{% endif %}
-    </p>
-    {% endif %}
-</section>
+<div class="app-shell">
+    <section class="results-head">
+        <a class="back-link" href="{{ url_for('index') }}">&larr; New search</a>
+        {% if criteria %}
+        <p class="eyebrow">It starts with a shift</p>
+        <h1>Your matches</h1>
+        <p class="results-meta">
+            {{ jobs|length }} {{ category_label }} match{{ '' if jobs|length == 1 else 'es' }} within {{ criteria.radius }} miles
+            {% if not live %}· demo data{% endif %}
+        </p>
+        {% endif %}
+    </section>
 
-{% if error %}
-<div class="notice notice-error" role="alert">{{ error }}</div>
-{% elif not jobs %}
-<div class="empty-state">
-    <h2>No matches right now</h2>
-    <p>Try a wider radius or a different category. We only show roles paying £12.71/hour and up, posted in the last two weeks.</p>
-    <a class="btn btn-primary" href="{{ url_for('index') }}">Adjust search</a>
-</div>
-{% else %}
-<div class="card-grid">
-    {% for job in jobs %}
-    <article class="job-card reveal" style="--i: {{ loop.index0 }}">
-        <div class="job-card-top">
-            <span class="source-badge">{{ job.source }}</span>
-            <span class="posted-badge">{{ job.posted | relative_date }}</span>
+    {% if error %}
+    <div class="notice notice-error" role="alert">{{ error }}</div>
+    {% elif not jobs %}
+    <div class="empty-state">
+        <h2>No matches right now</h2>
+        <p>Try a wider radius or a different category. We only show roles paying £12.71/hour and up, posted in the last two weeks.</p>
+        <a class="btn btn-primary" href="{{ url_for('index') }}">Adjust search</a>
+    </div>
+    {% else %}
+    <div class="deck" id="deck" data-count="{{ jobs|length }}">
+        {% for job in jobs %}
+        <article class="job-card" data-url="{{ job.url }}">
+            <div class="job-visual">
+                <div class="job-topbar">
+                    <div class="topbar-left">
+                        <span class="company-tile">{{ job.company[:2] | upper }}</span>
+                        <span class="source-pill">via {{ job.source }}</span>
+                    </div>
+                    <span class="save-btn" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+                    </span>
+                </div>
+
+                <div class="badges">
+                    <span class="badge">{{ job.employment_type }}</span>
+                    <span class="badge badge-solid">{{ job.pay }}</span>
+                </div>
+
+                <div class="job-glass">
+                    <div class="job-glass-inner">
+                        <div class="posted-line">
+                            <span class="posted-dot" aria-hidden="true"></span>
+                            {{ job.posted | relative_date }} · {{ job.distance_display }} away
+                        </div>
+                        <h2 class="job-title">{{ job.title }}</h2>
+                        <p class="job-company">{{ job.company }} · {{ job.location }}</p>
+                        <div class="meta-tiles">
+                            <div class="meta-tile"><span>Pay</span><strong>{{ job.pay.split('/')[0] }}</strong></div>
+                            <div class="meta-tile"><span>Type</span><strong>{{ job.employment_type }}</strong></div>
+                            <div class="meta-tile"><span>Source</span><strong>{{ job.source }}</strong></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </article>
+        {% endfor %}
+
+        <div class="deck-empty" id="deckEmpty" hidden>
+            <h2>You're all caught up</h2>
+            <p>That's every match for this search. Widen your radius or try another category for more.</p>
+            <a class="btn btn-primary" href="{{ url_for('index') }}">New search</a>
         </div>
-        <h2 class="job-title">{{ job.title }}</h2>
-        <p class="job-company">{{ job.company }}</p>
-        <p class="job-pay">{{ job.pay }}</p>
-        <ul class="job-meta">
-            <li><span class="meta-label">Distance</span>{{ job.distance_display }}</li>
-            <li><span class="meta-label">Type</span>{{ job.employment_type }}</li>
-            <li><span class="meta-label">Where</span>{{ job.location }}</li>
-        </ul>
-        <a class="btn btn-apply" href="{{ job.url }}" target="_blank" rel="noopener noreferrer">Apply</a>
-    </article>
-    {% endfor %}
+    </div>
+
+    <nav class="swipe-bar" id="swipeBar" aria-label="Job actions">
+        <button type="button" class="swipe-btn swipe-pass" id="btnPass" aria-label="Pass">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <button type="button" class="swipe-btn swipe-save" id="btnSave" aria-label="Save for later">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+        </button>
+        <button type="button" class="swipe-btn swipe-apply" id="btnApply" aria-label="Apply to this job">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+        </button>
+    </nav>
+
+    <p class="deck-hint" id="deckHint">Tap <strong>Apply</strong> to open a listing · <strong>Pass</strong> to skip</p>
+    {% endif %}
 </div>
-{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/deck.js') }}" defer></script>
 {% endblock %}
