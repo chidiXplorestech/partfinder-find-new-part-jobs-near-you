@@ -15,6 +15,7 @@ from typing import List
 from config import CATEGORY_BY_KEY, Config
 from database import fetch_seed_jobs
 from models import Job, SearchCriteria
+from utils import board_search_url
 
 logger = logging.getLogger(__name__)
 
@@ -63,5 +64,11 @@ class SeedBackedProvider(JobProvider):
             source=self.name,
             category=criteria.category if category else None,
         )
+        # Seed listings are sample data; point Apply at a real board search for
+        # the role so the link is useful even without live provider credentials.
+        for job in jobs:
+            search_url = board_search_url(self.name, job.title)
+            if search_url:
+                job.url = search_url
         logger.debug("%s: %d seed jobs for category=%s", self.name, len(jobs), criteria.category)
         return self._stamp(jobs)

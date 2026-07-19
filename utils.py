@@ -10,6 +10,7 @@ import math
 import re
 from datetime import date, datetime
 from typing import Optional
+from urllib.parse import quote_plus
 
 # Rough UK full-time hours used to convert annual salaries to an hourly rate.
 _FULL_TIME_HOURS_PER_YEAR = 37.5 * 52
@@ -77,6 +78,37 @@ def parse_iso_date(value: str) -> Optional[date]:
             except ValueError:
                 continue
     return None
+
+
+_BOARD_SEARCH = {
+    "indeed": "https://uk.indeed.com/jobs?q={q}&l={loc}",
+    "linkedin": "https://www.linkedin.com/jobs/search/?keywords={q}&location={loc}",
+    "glassdoor": "https://www.glassdoor.co.uk/Job/jobs.htm?sc.keyword={q}&locKeyword={loc}",
+    "totaljobs": "https://www.totaljobs.com/jobs/{slug}/in-{locslug}",
+}
+
+
+def slugify(text: str) -> str:
+    """Lower-case hyphen slug, e.g. 'Weekend Retail' -> 'weekend-retail'."""
+    return re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+
+
+def board_search_url(
+    source: str, title: str, location: str = "Nottingham"
+) -> Optional[str]:
+    """Build a real search URL on a job board for a given role and place.
+
+    Used for demo/seed listings so the Apply button lands on genuine matching
+    listings for that board instead of a placeholder link. Returns ``None`` if
+    the source is unknown.
+    """
+    key = (source or "").lower()
+    template = _BOARD_SEARCH.get(key)
+    if not template:
+        return None
+    if key == "totaljobs":
+        return template.format(slug=slugify(title), locslug=slugify(location))
+    return template.format(q=quote_plus(title), loc=quote_plus(location))
 
 
 def annual_to_hourly(annual: Optional[float]) -> Optional[float]:
