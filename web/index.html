@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0e1116" />
+    <meta name="description" content="PartFinder — legitimate local part-time jobs for students around Nottingham." />
+    <title>PartFinder — Find local part-time work</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="app">
+            <a class="brand" href="#" onclick="location.reload()">
+                <span class="brand-flame" aria-hidden="true">
+                    <svg viewBox="0 0 24 32"><path d="M12 0c1 5 6 7 6 13a6 6 0 0 1-12 0c0-2 .8-3.4 1.6-4.6C6 12 4 14 4 18a8 8 0 0 0 16 0C20 9 13.5 6 12 0Z" fill="#fff"/></svg>
+                </span>
+                <span class="brand-mark">PARTFINDER</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="app">
+        <!-- ===== Home / search view ===== -->
+        <section id="homeView" class="view active">
+            <div class="hero">
+                <p class="hero-eyebrow">It starts with a shift</p>
+                <h1>Swipe right on <span class="hero-accent">real</span> part-time work</h1>
+                <p class="hero-sub">Pick your vibe, your free days, and how far you'll go. We pull live Nottingham listings paying £12.71/hour and up.</p>
+            </div>
+
+            <form id="searchForm" class="search-form">
+                <fieldset class="field-group">
+                    <legend><span class="legend-index">01</span> What are you into?</legend>
+                    <div class="option-grid" id="categoryGrid" role="radiogroup" aria-label="Job category"></div>
+                </fieldset>
+
+                <fieldset class="field-group">
+                    <legend><span class="legend-index">02</span> When are you free?</legend>
+                    <div class="option-grid days" aria-label="Available days">
+                        <label class="chip"><input type="checkbox" name="days" value="Monday"><span>Mon</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Tuesday"><span>Tue</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Wednesday"><span>Wed</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Thursday"><span>Thu</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Friday"><span>Fri</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Saturday"><span>Sat</span></label>
+                        <label class="chip"><input type="checkbox" name="days" value="Sunday"><span>Sun</span></label>
+                    </div>
+                </fieldset>
+
+                <fieldset class="field-group">
+                    <legend><span class="legend-index">03</span> How far will you go?</legend>
+                    <div class="radius-row">
+                        <label class="chip"><input type="radio" name="radius" value="3"><span>3 mi</span></label>
+                        <label class="chip"><input type="radio" name="radius" value="5" checked><span>5 mi</span></label>
+                        <label class="chip"><input type="radio" name="radius" value="10"><span>10 mi</span></label>
+                        <label class="chip"><input type="radio" name="radius" value="15"><span>15 mi</span></label>
+                    </div>
+                </fieldset>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Find my matches</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ===== Results / swipe view ===== -->
+        <section id="resultsView" class="view">
+            <div class="results-head">
+                <a class="back-link" href="#" id="newSearch">&larr; New search</a>
+                <p class="eyebrow">It starts with a shift</p>
+                <h1 id="resultsTitle">Your matches</h1>
+                <p class="results-meta" id="resultsMeta"></p>
+            </div>
+
+            <div class="deck" id="deck"></div>
+            <div class="deck-status" id="deckStatus" hidden></div>
+
+            <nav class="swipe-bar" id="swipeBar" aria-label="Job actions" style="display:none">
+                <button type="button" class="swipe-btn swipe-pass" id="btnPass" aria-label="Pass">
+                    <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+                <button type="button" class="swipe-btn swipe-save" id="btnSave" aria-label="Save for later">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+                </button>
+                <button type="button" class="swipe-btn swipe-apply" id="btnApply" aria-label="Apply to this job">
+                    <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                </button>
+            </nav>
+            <p class="deck-hint" id="deckHint" style="display:none">Drag or tap <strong>Apply</strong> to open a listing · <strong>Pass</strong> to skip</p>
+        </section>
+    </main>
+
+    <footer class="site-footer">
+        <div class="app">
+            <p>Searching around 57 Albert Grove, Nottingham, NG7 1NZ · part-time, casual and student roles paying £12.71/hour and up, posted within two weeks.</p>
+        </div>
+    </footer>
+
+    <!-- GSAP + Draggable (animation only) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+    <!-- App scripts (order matters) -->
+    <script src="js/config.js" onerror="window.PF_CONFIG=window.PF_CONFIG||{}"></script>
+    <script src="js/logic.js"></script>
+    <script src="js/adzuna.js"></script>
+    <script src="js/app.js" defer></script>
+</body>
+</html>
