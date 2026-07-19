@@ -35,6 +35,18 @@ function buildAdzunaUrl(criteria) {
     return `${base}?${params.toString()}`;
 }
 
+/*
+ * Adzuna does not send CORS headers, so a browser blocks the direct call.
+ * When PF_CONFIG.CORS_PROXY is set, route the request through it. Default is a
+ * free, keyless proxy that returns the raw JSON with permissive CORS headers.
+ */
+function withCorsProxy(adzunaUrl) {
+    const c = window.PF_CONFIG || {};
+    const proxy = c.CORS_PROXY;
+    if (!proxy) return adzunaUrl; // direct call (only where CORS is allowed)
+    return proxy + encodeURIComponent(adzunaUrl);
+}
+
 /* Normalize one Adzuna result into a job object. */
 function normalizeAdzuna(item, criteria) {
     if (!item || !item.title || !item.redirect_url) return null;
@@ -71,9 +83,11 @@ async function fetchAdzunaJobs(criteria) {
 
     let response;
     try {
-        response = await fetch(buildAdzunaUrl(criteria), { headers: { Accept: "application/json" } });
+        const url = withCorsProxy(buildAdzunaUrl(criteria));
+        response = await fetch(url, { headers: { Accept: "application/json" } });
     } catch (err) {
-        // A blocked CORS request surfaces here as a TypeError ("Failed to fetch").
+        // A blocked CORS request (or an unreachable proxy) surfaces here as a
+        // TypeError ("Failed to fetch").
         const e = new Error("Could not reach Adzuna from the browser.");
         e.reason = "cors";
         throw e;

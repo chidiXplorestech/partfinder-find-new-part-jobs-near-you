@@ -68,11 +68,26 @@ GSAP and its Draggable plugin load from a CDN (animation only).
 
 ---
 
+## How the live call works (CORS)
+
+Adzuna does not send CORS headers, so a browser blocks a direct call. The app therefore
+routes the request through a **CORS proxy** set in `js/config.js`:
+
+```js
+CORS_PROXY: "https://api.allorigins.win/raw?url=",
+```
+
+- This is a free, keyless public proxy — it makes the static app work in Live Server.
+- **Your Adzuna key passes through the proxy**, so use a throwaway key and rotate it
+  after your demo.
+- To avoid any third party, set `CORS_PROXY: ""` and run the **Flask version**
+  (`python server.py` in the repo root) — it calls Adzuna server-side, no CORS proxy.
+
 ## Notes & troubleshooting
 
-- **"Browser blocked the request (CORS)"** — some browsers/networks block the direct
-  Adzuna call. If you hit this, use the **Flask version** in the repo root
-  (`python server.py`), which calls Adzuna server-side and has no CORS limit.
+- **"Couldn't reach the job service"** — the proxy was busy or down. Wait and retry,
+  swap `CORS_PROXY` for another proxy (e.g. `https://corsproxy.io/?url=`), or run the
+  Flask version.
 - **"Add your free Adzuna key"** — you haven't created `js/config.js` yet, or the keys
   are blank/invalid. Both an App ID *and* an App Key are required.
 - **No matches** — nothing paying £12.71/hour+ within your radius right now; widen the

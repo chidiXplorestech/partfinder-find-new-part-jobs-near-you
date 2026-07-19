@@ -204,7 +204,7 @@
             if (err.reason === "no-key") {
                 setStatus(errorHtml("Add your free Adzuna key", "Live search needs an Adzuna API key. Copy <code>js/config.example.js</code> to <code>js/config.js</code> and paste your App ID + App Key from developer.adzuna.com."));
             } else if (err.reason === "cors") {
-                setStatus(errorHtml("Browser blocked the request", "Your browser blocked the direct Adzuna call (CORS). Run the included Flask version (<code>python server.py</code>) for live results, or deploy behind a small proxy. See the README."));
+                setStatus(errorHtml("Couldn’t reach the job service", "The CORS proxy didn’t respond. It may be busy — wait a moment and try again, switch <code>CORS_PROXY</code> in <code>js/config.js</code>, or run the Flask version (<code>python server.py</code>). See the README."));
             } else {
                 setStatus(errorHtml("Live search failed", (err.message || "Please try again.") + " Check your keys and connection."));
             }
