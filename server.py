@@ -89,5 +89,25 @@ app = create_app()
 
 
 if __name__ == "__main__":
+    import os
+    import threading
+    import webbrowser
+
     conf = app.config["PARTFINDER"]
-    app.run(host="127.0.0.1", port=5000, debug=conf.debug)
+    # Port 5000 is taken by AirPlay Receiver on macOS, so default to 5050.
+    port = int(os.environ.get("PORT", "5050"))
+    url = f"http://127.0.0.1:{port}"
+
+    mode = "LIVE (Adzuna)" if conf.adzuna_configured else "DEMO (sample data — add Adzuna keys to .env for live jobs)"
+    print("\n" + "=" * 52)
+    print("  PartFinder is starting…")
+    print(f"  Mode:  {mode}")
+    print(f"  Open:  {url}")
+    print("  Stop:  press CTRL+C")
+    print("=" * 52 + "\n")
+
+    # Auto-open the browser once (skip the reloader's second process).
+    if not conf.debug and os.environ.get("WERKZEUG_RUN_MAIN") != "true":
+        threading.Timer(1.3, lambda: webbrowser.open(url)).start()
+
+    app.run(host="127.0.0.1", port=port, debug=conf.debug)

@@ -20,14 +20,17 @@ from providers.totaljobs import TotalJobsProvider
 
 
 def build_default_providers(config: Config) -> List[JobProvider]:
-    """Return the providers PartFinder queries, in registration order.
+    """Return the providers PartFinder queries.
 
-    The live Adzuna provider is queried first; the board-specific adapters
-    supply the bundled seed data (and are where real per-board integrations
-    would slot in later).
+    When Adzuna credentials are configured we return **only** the live Adzuna
+    provider, so results are real, current listings with real Apply links. When
+    no credentials are set we fall back to the bundled seed adapters so the app
+    still runs offline for a demo (their Apply links point to real board
+    searches, never dead placeholders).
     """
+    if config.adzuna_configured:
+        return [AdzunaProvider(config)]
     return [
-        AdzunaProvider(config),
         IndeedProvider(config),
         LinkedInProvider(config),
         GlassdoorProvider(config),
