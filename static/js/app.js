@@ -1,111 +1,105 @@
 /* =========================================================================
-   Align — swipe deck controller
-   Vanilla JS + GSAP + Draggable. Talks to the Flask /api/search endpoint.
+   Align — app controller
+   Vanilla JS + GSAP. Views: onboarding → home → deck. Sheets: details,
+   profile, paywall. Persistence: localStorage (shortlist, applied, onboarded).
    ========================================================================= */
 (function () {
   "use strict";
 
-  const REDUCED_MOTION = window.matchMedia(
-    "(prefers-reduced-motion: reduce)"
-  ).matches;
-  const hasGSAP = typeof window.gsap !== "undefined";
+  var REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var hasGSAP = typeof window.gsap !== "undefined";
   if (hasGSAP && window.Draggable) gsap.registerPlugin(Draggable);
 
-  // ---- DOM refs ----------------------------------------------------------
-  const $ = (id) => document.getElementById(id);
-  const homeView = $("homeView");
-  const deckView = $("deckView");
-  const form = $("searchForm");
-  const deck = $("cardDeck");
-  const controlBar = $("controlBar");
-  const deckTitle = $("deckTitle");
-  const deckNotice = $("deckNotice");
+  var CONFIG = window.ALIGN_CONFIG || { paywallActive: false, price: "£1.00", isPaid: false };
 
-  const loadingState = $("loadingState");
-  const errorState = $("errorState");
-  const emptyState = $("emptyState");
-  const doneState = $("doneState");
-  const errorMessage = $("errorMessage");
+  var $ = function (id) { return document.getElementById(id); };
 
-  const matchOverlay = $("matchOverlay");
-  const matchLine = $("matchLine");
-  const matchesDrawer = $("matchesDrawer");
-  const matchesList = $("matchesList");
-  const matchesCount = $("matchesCount");
+  // ---- Views & controls --------------------------------------------------
+  var onboarding = $("onboarding");
+  var topbar = $("topbar");
+  var homeView = $("homeView");
+  var deckView = $("deckView");
+  var form = $("searchForm");
+  var deck = $("cardDeck");
+  var controlBar = $("controlBar");
+  var deckHint = $("deckHint");
+  var deckTitle = $("deckTitle");
+  var deckCount = $("deckCount");
+  var deckNotice = $("deckNotice");
+
+  var loadingState = $("loadingState");
+  var errorState = $("errorState");
+  var emptyState = $("emptyState");
+  var doneState = $("doneState");
+
+  var detailSheet = $("detailSheet");
+  var profileSheet = $("profileSheet");
+  var paywallOverlay = $("paywallOverlay");
+  var toastEl = $("toast");
 
   // ---- State -------------------------------------------------------------
-  let jobs = [];        // remaining, undealt jobs (top of stack = end of array)
-  let saved = [];       // saved / matched jobs
-  const VISIBLE = 3;    // cards rendered for depth
+  var jobs = [];          // remaining stack (top card = last element)
+  var totalInSearch = 0;
+  var detailJob = null;
+  var profileTab = "saved";
+  var VISIBLE = 3;
 
-  // =======================================================================
-  //  Search submission
-  // =======================================================================
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    runSearch();
-  });
-
-  function collectQuery() {
-    const data = new FormData(form);
-    return {
-      category: data.get("category"),
-      days: data.getAll("days"),
-      radius: parseInt(data.get("radius"), 10) || 5,
-    };
+  // ---- Persistence -------------------------------------------------------
+  function load(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; }
+    catch (e) { return fallback; }
   }
+  function persist(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+  var saved = load("align.saved", []);
+  var applied = load("align.applied", []);
 
-  async function runSearch() {
-    const query = collectQuery();
-    showView("deck");
-    setState("loading");
-    deckNotice.hidden = true;
-
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(query),
-      });
-      const payload = await res.json();
-
-      // Paywall: server asks the user to pay before revealing matches.
-      if (res.status === 402 && payload.needs_payment) {
-        showView("home");
-        openPaywall();
-        return;
-      }
-
-      if (!res.ok || !payload.ok) {
-        showError(payload.error || "We couldn't load jobs right now.");
-        return;
-      }
-
-      deckTitle.textContent = payload.category_label
-        ? payload.category_label + " matches"
-        : "Your matches";
-
-      if (payload.notice) {
-        deckNotice.textContent = payload.notice;
-        deckNotice.hidden = false;
-      }
-
-      jobs = (payload.jobs || []).slice().reverse(); // top card = last element
-      if (jobs.length === 0) {
-        setState("empty");
-        return;
-      }
-      setState("deck");
-      renderDeck();
-    } catch (err) {
-      showError("Network error — check your connection and try again.");
+  // =======================================================================
+  //  Onboarding
+  // =======================================================================
+  function startApp() {
+    onboarding.hidden = true;
+    topbar.hidden = false;
+    showView("home");
+    persist("align.onboarded", true);
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.from(".hero-eyebrow, .hero-title", { y: 14, opacity: 0, duration: 0.5, stagger: 0.07, ease: "power3.out" });
+      gsap.from(".setup .field, .setup .btn-cta", { y: 16, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.12, ease: "power3.out" });
     }
   }
 
-  function showError(msg) {
-    errorMessage.textContent = msg;
-    setState("error");
-  }
+  (function initOnboarding() {
+    if (load("align.onboarded", false)) { startApp(); return; }
+    onboarding.hidden = false;
+
+    var track = $("obTrack");
+    var dots = $("obDots").children;
+    var next = $("obNext");
+    var slideCount = track.children.length;
+
+    function currentSlide() {
+      return Math.round(track.scrollLeft / track.clientWidth);
+    }
+    function syncDots() {
+      var idx = currentSlide();
+      for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("active", i === idx);
+      next.textContent = idx === slideCount - 1 ? "Start swiping" : "Continue";
+    }
+    track.addEventListener("scroll", function () { requestAnimationFrame(syncDots); });
+    next.addEventListener("click", function () {
+      var idx = currentSlide();
+      if (idx >= slideCount - 1) { startApp(); return; }
+      track.scrollTo({ left: (idx + 1) * track.clientWidth, behavior: REDUCED_MOTION ? "auto" : "smooth" });
+    });
+    $("obSkip").addEventListener("click", startApp);
+  })();
+
+  // ---- Greeting ----------------------------------------------------------
+  (function greet() {
+    var h = new Date().getHours();
+    $("greeting").textContent = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  })();
 
   // =======================================================================
   //  View / state management
@@ -122,99 +116,183 @@
     doneState.hidden = state !== "done";
     deck.hidden = state !== "deck";
     controlBar.hidden = state !== "deck";
+    deckHint.hidden = state !== "deck";
+  }
+
+  // =======================================================================
+  //  Search
+  // =======================================================================
+  form.addEventListener("submit", function (e) { e.preventDefault(); runSearch(); });
+
+  function collectQuery() {
+    var data = new FormData(form);
+    return {
+      category: data.get("category"),
+      days: data.getAll("days"),
+      radius: parseInt(data.get("radius"), 10) || 5,
+    };
+  }
+
+  function runSearch() {
+    var query = collectQuery();
+    showView("deck");
+    setState("loading");
+    deckNotice.hidden = true;
+    deckCount.textContent = "";
+
+    fetch("/api/search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(query),
+    })
+      .then(function (res) { return res.json().then(function (p) { return { res: res, payload: p }; }); })
+      .then(function (r) {
+        var res = r.res, payload = r.payload;
+
+        if (res.status === 402 && payload.needs_payment) {
+          showView("home");
+          openPaywall();
+          return;
+        }
+        if (!res.ok || !payload.ok) {
+          showError(payload.error || "We couldn't load jobs just now.");
+          return;
+        }
+
+        deckTitle.textContent = payload.category_label ? payload.category_label + " near you" : "Nearby jobs";
+        if (payload.notice) {
+          deckNotice.textContent = payload.notice;
+          deckNotice.hidden = false;
+        }
+
+        jobs = (payload.jobs || []).slice().reverse();
+        totalInSearch = jobs.length;
+        if (!jobs.length) { setState("empty"); return; }
+        setState("deck");
+        renderDeck();
+        updateCount();
+      })
+      .catch(function () {
+        showError("Check your connection and try again.");
+      });
+  }
+
+  function showError(msg) {
+    $("errorMessage").textContent = msg;
+    setState("error");
+  }
+
+  function updateCount() {
+    var seen = totalInSearch - jobs.length + 1;
+    deckCount.textContent = jobs.length ? seen + " of " + totalInSearch : "";
   }
 
   // =======================================================================
   //  Deck rendering
   // =======================================================================
-  function renderDeck() {
-    deck.innerHTML = "";
-    const start = Math.max(0, jobs.length - VISIBLE);
-    for (let i = start; i < jobs.length; i++) {
-      const depth = jobs.length - 1 - i; // 0 = top card
-      const card = buildCard(jobs[i], depth);
-      deck.appendChild(card);
-    }
-    positionCards();
-    const top = topCard();
-    if (top && !REDUCED_MOTION && hasGSAP) {
-      gsap.from(top, { y: 24, opacity: 0, duration: 0.35, ease: "power3.out" });
-    }
-    enableDrag();
+  var TILE_TINTS = [
+    ["#E6F4EE", "#0B8A5C"], // emerald
+    ["#E8F0FB", "#3465C0"], // blue
+    ["#F6EFE3", "#9A6B22"], // amber
+    ["#F3EBF7", "#7C4FA3"], // plum
+    ["#FBEEED", "#C05548"], // clay
+  ];
+  function tintFor(name) {
+    var h = 0;
+    for (var i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
+    return TILE_TINTS[h % TILE_TINTS.length];
   }
 
-  function buildCard(job, depth) {
-    const el = document.createElement("article");
-    el.className = "job-card";
-    el.dataset.url = job.redirect_url;
+  function logoTile(job, size) {
+    var t = tintFor(job.company || "?");
+    return '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '" aria-hidden="true">' + esc(job.initials) + "</div>";
+  }
 
-    const reasons = (job.match_reasons || [])
-      .map((r) => `<span class="reason">${escapeHtml(r)}</span>`)
+  function matchRing(pct) {
+    var r = 19, c = 2 * Math.PI * r;
+    var off = c * (1 - pct / 100);
+    return (
+      '<div class="match-ring" title="Match score" aria-label="' + pct + '% match">' +
+      '<svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">' +
+      '<circle class="ring-bg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4"/>' +
+      '<circle class="ring-fg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '"/>' +
+      "</svg>" +
+      '<span class="ring-label">' + pct + "</span>" +
+      "</div>"
+    );
+  }
+
+  function buildCard(job) {
+    var el = document.createElement("article");
+    el.className = "job-card";
+    el.setAttribute("tabindex", "0");
+    el.setAttribute("aria-label", job.title + " at " + job.company);
+
+    var reasons = (job.match_reasons || [])
+      .map(function (r) { return '<div class="reason">' + esc(r) + "</div>"; })
       .join("");
 
-    el.innerHTML = `
-      <div class="stamp like">Apply</div>
-      <div class="stamp nope">Pass</div>
-
-      <div class="card-top">
-        <div class="company-tile">${escapeHtml(job.initials)}</div>
-        <div class="card-top-right">
-          <span class="via-pill"><span class="dot"></span>via ${escapeHtml(job.source)}</span>
-          <button class="bookmark-btn" type="button" aria-label="Save job">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-          </button>
-        </div>
-      </div>
-
-      <div class="match-badge">
-        <span class="pct grad-text">${job.match_percent}%</span>
-        <span class="lbl">match</span>
-      </div>
-
-      <div class="overlay-badges">
-        <span class="ov-badge type">${escapeHtml(job.type_display)}</span>
-        <span class="ov-badge pay">${escapeHtml(job.salary_display)}</span>
-      </div>
-
-      <div class="card-glass">
-        <div class="glass-meta">
-          <span>${escapeHtml(job.created_display)}</span>
-          <span class="sep">•</span>
-          <span>${job.distance_miles != null ? job.distance_miles + " mi away" : "Nearby"}</span>
-        </div>
-        <h2 class="card-title">${escapeHtml(job.title)}</h2>
-        <div class="card-company">${escapeHtml(job.company)} · ${escapeHtml(job.location)}</div>
-        <div class="reasons">${reasons}</div>
-        <div class="tiles">
-          <div class="tile"><div class="tile-k">Pay</div><div class="tile-v">${escapeHtml(job.salary_display)}</div></div>
-          <div class="tile"><div class="tile-k">Type</div><div class="tile-v">${escapeHtml(job.type_display)}</div></div>
-          <div class="tile"><div class="tile-k">Source</div><div class="tile-v">${escapeHtml(job.source)}</div></div>
-        </div>
-      </div>
-    `;
+    el.innerHTML =
+      '<div class="stamp like">Shortlist</div>' +
+      '<div class="stamp nope">Pass</div>' +
+      '<div class="card-head">' +
+        logoTile(job) +
+        '<div class="card-co">' +
+          '<div class="co-name">' + esc(job.company) + "</div>" +
+          '<div class="co-loc">' + esc(job.location) + "</div>" +
+        "</div>" +
+        matchRing(job.match_percent) +
+      "</div>" +
+      '<h2 class="card-title">' + esc(job.title) + "</h2>" +
+      '<div class="card-pills">' +
+        '<span class="pill pay">' + esc(job.salary_display) + "</span>" +
+        '<span class="pill">' + esc(job.type_display) + "</span>" +
+        (job.distance_miles != null ? '<span class="pill">' + job.distance_miles + " mi</span>" : "") +
+      "</div>" +
+      (reasons
+        ? '<div class="card-reasons"><div class="reasons-label">Why it fits</div>' + reasons + "</div>"
+        : "") +
+      '<div class="card-foot">' +
+        "<span>" + esc(job.created_display) + " · via " + esc(job.source) + "</span>" +
+        '<span class="tap-hint">Tap for details</span>' +
+      "</div>";
 
     el._job = job;
 
-    el.querySelector(".bookmark-btn").addEventListener("click", (ev) => {
-      ev.stopPropagation();
-      if (el === topCard()) swipe("save");
+    el.addEventListener("click", function (e) {
+      if (el === topCard() && !el._dragging) openDetail(job);
+    });
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && el === topCard()) openDetail(job);
     });
 
     return el;
   }
 
+  function renderDeck() {
+    deck.innerHTML = "";
+    var start = Math.max(0, jobs.length - VISIBLE);
+    for (var i = start; i < jobs.length; i++) {
+      deck.appendChild(buildCard(jobs[i]));
+    }
+    positionCards();
+    var top = topCard();
+    if (top && hasGSAP && !REDUCED_MOTION) {
+      gsap.from(top, { y: 26, opacity: 0, duration: 0.4, ease: "power3.out" });
+    }
+    enableDrag();
+  }
+
   function positionCards() {
-    const cards = deck.querySelectorAll(".job-card");
-    const total = cards.length;
-    cards.forEach((card, idx) => {
-      const depth = total - 1 - idx; // 0 = top
-      const scale = 1 - depth * 0.05;
-      const translateY = depth * 14;
-      const setter = { scale: scale, y: translateY, zIndex: 100 - depth };
-      if (hasGSAP) {
-        gsap.set(card, setter);
-      } else {
-        card.style.transform = `translateY(${translateY}px) scale(${scale})`;
+    var cards = deck.querySelectorAll(".job-card");
+    var total = cards.length;
+    cards.forEach(function (card, idx) {
+      var depth = total - 1 - idx;
+      var scale = 1 - depth * 0.045;
+      var y = depth * 12;
+      if (hasGSAP) gsap.set(card, { scale: scale, y: y, zIndex: 100 - depth });
+      else {
+        card.style.transform = "translateY(" + y + "px) scale(" + scale + ")";
         card.style.zIndex = 100 - depth;
       }
       card.style.pointerEvents = depth === 0 ? "auto" : "none";
@@ -222,319 +300,375 @@
   }
 
   function topCard() {
-    const cards = deck.querySelectorAll(".job-card");
+    var cards = deck.querySelectorAll(".job-card");
     return cards.length ? cards[cards.length - 1] : null;
   }
 
   // =======================================================================
-  //  Drag to swipe (GSAP Draggable)
+  //  Drag physics
   // =======================================================================
   function enableDrag() {
-    const card = topCard();
+    var card = topCard();
     if (!card || !hasGSAP || !window.Draggable) return;
 
     Draggable.create(card, {
       type: "x,y",
-      inertia: false,
+      onDragStart: function () { card._dragging = true; },
       onDrag: function () {
-        const rot = this.x * 0.05;
-        gsap.set(card, { rotation: rot });
-        const likeStamp = card.querySelector(".stamp.like");
-        const nopeStamp = card.querySelector(".stamp.nope");
+        gsap.set(card, { rotation: this.x * 0.05 });
+        var like = card.querySelector(".stamp.like");
+        var nope = card.querySelector(".stamp.nope");
         if (this.x > 0) {
-          gsap.set(likeStamp, { opacity: Math.min(1, this.x / 100) });
-          gsap.set(nopeStamp, { opacity: 0 });
+          gsap.set(like, { opacity: Math.min(1, this.x / 90) });
+          gsap.set(nope, { opacity: 0 });
         } else {
-          gsap.set(nopeStamp, { opacity: Math.min(1, -this.x / 100) });
-          gsap.set(likeStamp, { opacity: 0 });
+          gsap.set(nope, { opacity: Math.min(1, -this.x / 90) });
+          gsap.set(like, { opacity: 0 });
         }
       },
       onDragEnd: function () {
-        const threshold = 110;
+        var threshold = 100;
         if (this.x > threshold) {
-          flingCard(card, 1, () => onDecision("apply", card._job));
+          fling(card, 1, function () { onShortlist(card._job); });
         } else if (this.x < -threshold) {
-          flingCard(card, -1, () => onDecision("pass", card._job));
+          fling(card, -1, function () {});
         } else {
-          gsap.to(card, {
-            x: 0,
-            y: 0,
-            rotation: 0,
-            duration: 0.4,
-            ease: "elastic.out(1, 0.6)",
-          });
+          gsap.to(card, { x: 0, y: 0, rotation: 0, duration: 0.5, ease: "elastic.out(1, 0.65)" });
           gsap.to(card.querySelectorAll(".stamp"), { opacity: 0, duration: 0.2 });
         }
+        // Delay clearing so the click handler after drag-release is ignored.
+        setTimeout(function () { card._dragging = false; }, 120);
       },
     });
   }
 
-  function flingCard(card, dir, done) {
-    const dist = (window.innerWidth || 500) * 1.3;
+  function fling(card, dir, after) {
+    var dist = (window.innerWidth || 480) * 1.25;
     if (!hasGSAP || REDUCED_MOTION) {
-      if (card) card.remove();
-      done();
-      advance();
-      return;
+      card.remove(); after(); advance(); return;
     }
     gsap.to(card, {
-      x: dir * dist,
-      y: -40,
-      rotation: dir * 18,
-      opacity: 0,
-      duration: 0.45,
-      ease: "power2.in",
-      onComplete: () => {
-        card.remove();
-        done();
-        advance();
-      },
+      x: dir * dist, y: -30, rotation: dir * 14, opacity: 0,
+      duration: 0.4, ease: "power2.in",
+      onComplete: function () { card.remove(); after(); advance(); },
     });
   }
 
   // =======================================================================
-  //  Decisions (also reachable via buttons + keyboard)
+  //  Decisions
   // =======================================================================
   function swipe(kind) {
-    const card = topCard();
+    var card = topCard();
     if (!card) return;
-    const job = card._job;
-    if (kind === "pass") {
-      flingCard(card, -1, () => onDecision("pass", job));
-    } else if (kind === "apply") {
-      flingCard(card, 1, () => onDecision("apply", job));
-    } else if (kind === "save") {
-      addSaved(job);
-      pulseButton($("saveBtn"));
-      flingCard(card, 1, () => {});
-    }
+    if (kind === "pass") fling(card, -1, function () {});
+    else if (kind === "save") fling(card, 1, function () { onShortlist(card._job); });
   }
 
-  function onDecision(kind, job) {
-    if (kind === "apply") {
-      addSaved(job);
-      celebrateMatch(job);
-      window.open(job.redirect_url, "_blank", "noopener");
-    }
-    // "pass" simply discards.
+  function onShortlist(job) {
+    addSaved(job);
+    toast('Shortlisted <span class="tick">✓</span>');
   }
 
   function advance() {
-    // Remove the dealt job from the queue (it was the last element).
     jobs.pop();
-    if (jobs.length === 0) {
-      finishDeck();
-      return;
-    }
-    // Add the next hidden card beneath the stack to keep depth.
-    const needed = Math.min(VISIBLE, jobs.length);
-    const rendered = deck.querySelectorAll(".job-card").length;
+    if (!jobs.length) { finishDeck(); return; }
+    var needed = Math.min(VISIBLE, jobs.length);
+    var rendered = deck.querySelectorAll(".job-card").length;
     if (rendered < needed) {
-      const idx = jobs.length - rendered - 1;
-      if (idx >= 0) {
-        const card = buildCard(jobs[idx], 0);
-        deck.insertBefore(card, deck.firstChild);
-      }
+      var idx = jobs.length - rendered - 1;
+      if (idx >= 0) deck.insertBefore(buildCard(jobs[idx]), deck.firstChild);
     }
     positionCards();
     enableDrag();
+    updateCount();
   }
 
   function finishDeck() {
-    $("doneSavedCount").textContent = saved.length
-      ? saved.length + " roles"
-      : "nothing yet";
+    $("doneSavedLine").textContent = saved.length
+      ? "you shortlisted " + saved.length + (saved.length === 1 ? " job." : " jobs.")
+      : "come back tomorrow.";
     setState("done");
   }
 
   // =======================================================================
-  //  Saved / matches
+  //  Detail sheet
   // =======================================================================
-  function addSaved(job) {
-    if (saved.some((j) => j.redirect_url === job.redirect_url)) return;
-    saved.push(job);
-    updateMatchesBadge();
+  function openDetail(job) {
+    detailJob = job;
+    var body = $("detailBody");
+    body.innerHTML =
+      '<div class="detail-head">' +
+        logoTile(job) +
+        '<div class="card-co">' +
+          '<div class="co-name">' + esc(job.company) + "</div>" +
+          '<div class="co-loc">' + esc(job.location) + "</div>" +
+        "</div>" +
+        matchRing(job.match_percent) +
+      "</div>" +
+      '<h2 class="detail-title">' + esc(job.title) + "</h2>" +
+      '<div class="card-pills">' +
+        '<span class="pill pay">' + esc(job.salary_display) + "</span>" +
+        '<span class="pill">' + esc(job.type_display) + "</span>" +
+        (job.distance_miles != null ? '<span class="pill">' + job.distance_miles + " mi away</span>" : "") +
+      "</div>" +
+      (job.match_reasons && job.match_reasons.length
+        ? '<div class="detail-section"><h3>Why it fits</h3>' +
+          job.match_reasons.map(function (r) { return '<div class="reason">' + esc(r) + "</div>"; }).join("") +
+          "</div>"
+        : "") +
+      (job.description
+        ? '<div class="detail-section"><h3>About this role</h3><p class="detail-desc">' + esc(job.description) + "</p></div>"
+        : "") +
+      '<div class="detail-section"><h3>Details</h3><div class="detail-meta">' +
+        metaTile("Posted", job.created_display) +
+        metaTile("Type", job.type_display) +
+        metaTile("Pay", job.salary_display) +
+        metaTile("Source", job.source) +
+      "</div></div>";
+
+    var applyBtn = $("detailApplyBtn");
+    applyBtn.href = job.redirect_url;
+    syncDetailSave();
+    openSheet(detailSheet);
   }
 
-  function updateMatchesBadge() {
-    if (saved.length > 0) {
-      matchesCount.textContent = String(saved.length);
-      matchesCount.hidden = false;
-    } else {
-      matchesCount.hidden = true;
+  function metaTile(k, v) {
+    return '<div class="meta-tile"><div class="meta-k">' + esc(k) + '</div><div class="meta-v">' + esc(v || "—") + "</div></div>";
+  }
+
+  function syncDetailSave() {
+    $("detailSaveBtn").classList.toggle("active", !!(detailJob && isSaved(detailJob)));
+  }
+
+  $("detailSaveBtn").addEventListener("click", function () {
+    if (!detailJob) return;
+    if (isSaved(detailJob)) removeSaved(detailJob);
+    else { addSaved(detailJob); toast('Shortlisted <span class="tick">✓</span>'); }
+    syncDetailSave();
+  });
+
+  $("detailApplyBtn").addEventListener("click", function () {
+    if (!detailJob) return;
+    markApplied(detailJob);
+    toast("Good luck out there 🍀");
+  });
+
+  // =======================================================================
+  //  Saved / applied
+  // =======================================================================
+  function isSaved(job) {
+    return saved.some(function (j) { return j.redirect_url === job.redirect_url; });
+  }
+  function addSaved(job) {
+    if (isSaved(job)) return;
+    saved.unshift(job);
+    persist("align.saved", saved);
+    updateSavedBadge(true);
+  }
+  function removeSaved(job) {
+    saved = saved.filter(function (j) { return j.redirect_url !== job.redirect_url; });
+    persist("align.saved", saved);
+    updateSavedBadge(false);
+  }
+  function markApplied(job) {
+    if (!applied.some(function (j) { return j.redirect_url === job.redirect_url; })) {
+      applied.unshift(job);
+      persist("align.applied", applied);
     }
   }
+  function updateSavedBadge(pulse) {
+    var badge = $("savedCount");
+    badge.textContent = String(saved.length);
+    badge.hidden = saved.length === 0;
+    if (pulse && hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo("#profileBtn", { scale: 0.86 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)" });
+    }
+  }
+  updateSavedBadge(false);
 
-  function renderMatches() {
-    if (saved.length === 0) {
-      matchesList.innerHTML =
-        '<div class="matches-empty">No matches yet. Swipe right or tap ♥ on a job you like.</div>';
+  // =======================================================================
+  //  Profile sheet
+  // =======================================================================
+  function renderProfile() {
+    var list = $("profileList");
+    var items = profileTab === "saved" ? saved : applied;
+    $("tabSaved").classList.toggle("active", profileTab === "saved");
+    $("tabApplied").classList.toggle("active", profileTab === "applied");
+    $("tabSaved").setAttribute("aria-selected", profileTab === "saved");
+    $("tabApplied").setAttribute("aria-selected", profileTab === "applied");
+
+    if (!items.length) {
+      list.innerHTML =
+        '<div class="profile-empty">' +
+        (profileTab === "saved"
+          ? "Nothing shortlisted yet.<br/>Swipe right on a job you like — it'll wait for you here."
+          : "No applications yet.<br/>When you tap Apply on a job, we'll keep track of it here.") +
+        "</div>";
       return;
     }
-    matchesList.innerHTML = saved
-      .map(
-        (j) => `
-      <div class="match-row">
-        <div class="mini-tile">${escapeHtml(j.initials)}</div>
-        <div class="mr-body">
-          <div class="mr-title">${escapeHtml(j.title)}</div>
-          <div class="mr-sub">${escapeHtml(j.company)} · ${escapeHtml(j.salary_display)}</div>
-        </div>
-        <a class="mr-apply" href="${encodeURI(j.redirect_url)}" target="_blank" rel="noopener">Apply</a>
-      </div>`
-      )
+    list.innerHTML = items
+      .map(function (j) {
+        var t = tintFor(j.company || "?");
+        var end =
+          profileTab === "applied"
+            ? '<span class="jr-applied">Applied ✓</span>'
+            : '<a class="jr-apply" href="' + encodeURI(j.redirect_url) + '" target="_blank" rel="noopener" data-url="' + esc(j.redirect_url) + '">Apply</a>';
+        return (
+          '<div class="job-row">' +
+          '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '">' + esc(j.initials) + "</div>" +
+          '<div class="jr-body"><div class="jr-title">' + esc(j.title) + '</div><div class="jr-sub">' + esc(j.company) + " · " + esc(j.salary_display) + "</div></div>" +
+          end +
+          "</div>"
+        );
+      })
       .join("");
   }
 
+  $("profileList").addEventListener("click", function (e) {
+    var a = e.target.closest(".jr-apply");
+    if (a) {
+      var job = saved.find(function (j) { return j.redirect_url === a.dataset.url; });
+      if (job) markApplied(job);
+    }
+  });
+
+  $("tabSaved").addEventListener("click", function () { profileTab = "saved"; renderProfile(); });
+  $("tabApplied").addEventListener("click", function () { profileTab = "applied"; renderProfile(); });
+
+  function openProfile() {
+    renderProfile();
+    $("subBadge").textContent = CONFIG.paywallActive && !CONFIG.isPaid ? "Locked" : "Unlocked";
+    openSheet(profileSheet);
+  }
+  $("profileBtn").addEventListener("click", openProfile);
+  $("doneMatches").addEventListener("click", openProfile);
+
   // =======================================================================
-  //  "It's a match" celebration
+  //  Sheets
   // =======================================================================
-  function celebrateMatch(job) {
-    matchLine.textContent = `You and ${job.company} could be a great fit.`;
-    matchOverlay.hidden = false;
+  function openSheet(sheet) {
+    sheet.hidden = false;
+    var panel = sheet.querySelector(".sheet-panel");
     if (hasGSAP && !REDUCED_MOTION) {
-      const burst = matchOverlay.querySelector(".match-burst");
-      const content = matchOverlay.querySelector(".match-content");
-      gsap.fromTo(burst, { scale: 0.2, opacity: 0 }, { scale: 1.1, opacity: 1, duration: 0.5, ease: "power2.out" });
-      gsap.fromTo(content, { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(1.7)" });
-      gsap.fromTo(
-        matchOverlay.querySelector(".match-spark"),
-        { y: 10, rotation: -20 },
-        { y: 0, rotation: 20, duration: 0.6, yoyo: true, repeat: 1, ease: "sine.inOut" }
-      );
-    }
-    setTimeout(() => {
-      matchOverlay.hidden = true;
-    }, 1400);
-  }
-
-  function pulseButton(btn) {
-    if (btn && hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo(btn, { scale: 0.8 }, { scale: 1, duration: 0.4, ease: "back.out(2)" });
+      gsap.fromTo(sheet.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      gsap.fromTo(panel, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" });
     }
   }
+  function closeSheet(sheet) {
+    var panel = sheet.querySelector(".sheet-panel");
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.to(panel, {
+        y: 60, opacity: 0, duration: 0.28, ease: "power2.in",
+        onComplete: function () { sheet.hidden = true; gsap.set(panel, { clearProps: "all" }); },
+      });
+    } else sheet.hidden = true;
+  }
+
+  document.querySelectorAll("[data-close-sheet]").forEach(function (el) {
+    el.addEventListener("click", function () {
+      closeSheet(el.closest(".sheet"));
+    });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") {
+      [detailSheet, profileSheet].forEach(function (s) { if (!s.hidden) closeSheet(s); });
+    }
+  });
 
   // =======================================================================
-  //  Paywall (£1 unlock via Stripe Checkout)
+  //  Paywall
   // =======================================================================
-  const CONFIG = window.ALIGN_CONFIG || { paywallActive: false, price: "£1.00", isPaid: false };
-  const paywallOverlay = $("paywallOverlay");
-  const paywallPayBtn = $("paywallPayBtn");
+  var paywallPayBtn = $("paywallPayBtn");
 
   function openPaywall() {
-    $("paywallPrice").textContent = CONFIG.price || "£1.00";
-    $("paywallBtnLabel").textContent = "Unlock for " + (CONFIG.price || "£1.00");
-    paywallOverlay.hidden = false;
-    if (hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo(
-        paywallOverlay.querySelector(".paywall-card"),
-        { y: 30, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }
-      );
-    }
+    $("paywallPrice").textContent = CONFIG.price || "£1";
+    $("paywallBtnLabel").textContent = "Unlock Align — " + (CONFIG.price || "£1");
+    openSheet(paywallOverlay);
   }
+  function closePaywall() { closeSheet(paywallOverlay); }
 
-  function closePaywall() {
-    paywallOverlay.hidden = true;
-  }
-
-  async function startCheckout() {
+  paywallPayBtn.addEventListener("click", function () {
     paywallPayBtn.disabled = true;
-    $("paywallBtnLabel").textContent = "Redirecting…";
-    try {
-      const res = await fetch("/api/checkout", { method: "POST" });
-      const payload = await res.json();
-      if (payload.unlocked) {
-        // Paywall disabled server-side — just proceed.
-        closePaywall();
-        runSearch();
-        return;
-      }
-      if (payload.ok && payload.checkout_url) {
-        window.location.href = payload.checkout_url; // hand off to Stripe
-        return;
-      }
-      throw new Error(payload.error || "Checkout unavailable.");
-    } catch (err) {
-      $("paywallBtnLabel").textContent = "Unlock for " + (CONFIG.price || "£1.00");
-      paywallPayBtn.disabled = false;
-      alert("Sorry — couldn't start checkout. " + (err.message || ""));
-    }
-  }
-
-  paywallPayBtn.addEventListener("click", startCheckout);
+    $("paywallBtnLabel").textContent = "One moment…";
+    fetch("/api/checkout", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (payload) {
+        if (payload.unlocked) { closePaywall(); runSearch(); return; }
+        if (payload.ok && payload.checkout_url) { window.location.href = payload.checkout_url; return; }
+        throw new Error(payload.error || "Checkout unavailable.");
+      })
+      .catch(function (err) {
+        $("paywallBtnLabel").textContent = "Unlock Align — " + (CONFIG.price || "£1");
+        paywallPayBtn.disabled = false;
+        toast(err.message || "Couldn't start checkout — try again.");
+      });
+  });
   $("paywallLater").addEventListener("click", closePaywall);
 
-  // Handle the return trip from Stripe.
   (function handlePaymentReturn() {
-    const params = new URLSearchParams(window.location.search);
+    var params = new URLSearchParams(window.location.search);
     if (params.get("paid") === "1") {
-      // Access unlocked server-side; clean the URL.
       history.replaceState({}, "", window.location.pathname);
+      CONFIG.isPaid = true;
+      toast('Align unlocked <span class="tick">✓</span> Welcome in.');
     } else if (params.get("pay") === "failed") {
       history.replaceState({}, "", window.location.pathname);
-      alert("Payment didn't complete. You can try again anytime.");
+      toast("Payment didn't go through — you can try again anytime.");
     } else if (params.get("pay") === "cancelled") {
       history.replaceState({}, "", window.location.pathname);
     }
   })();
 
   // =======================================================================
-  //  Control bar + keyboard + drawer wiring
+  //  Controls
   // =======================================================================
-  $("passBtn").addEventListener("click", () => swipe("pass"));
-  $("applyBtn").addEventListener("click", () => swipe("apply"));
-  $("saveBtn").addEventListener("click", () => swipe("save"));
-
-  document.addEventListener("keydown", (e) => {
-    if (deckView.hidden || deck.hidden) return;
-    if (e.key === "ArrowLeft") swipe("pass");
-    else if (e.key === "ArrowRight") swipe("apply");
+  $("passBtn").addEventListener("click", function () { swipe("pass"); });
+  $("saveBtn").addEventListener("click", function () { swipe("save"); });
+  $("viewBtn").addEventListener("click", function () {
+    var card = topCard();
+    if (card) openDetail(card._job);
   });
 
-  $("backBtn").addEventListener("click", () => showView("home"));
-  $("emptyBack").addEventListener("click", () => showView("home"));
-  $("errorRetry").addEventListener("click", () => runSearch());
-  $("doneRestart").addEventListener("click", () => showView("home"));
-  $("doneMatches").addEventListener("click", openDrawer);
+  document.addEventListener("keydown", function (e) {
+    if (deckView.hidden || deck.hidden || !detailSheet.hidden || !profileSheet.hidden) return;
+    if (e.key === "ArrowLeft") swipe("pass");
+    else if (e.key === "ArrowRight") swipe("save");
+    else if (e.key === "ArrowUp") {
+      var card = topCard();
+      if (card) openDetail(card._job);
+    }
+  });
 
-  $("matchesBtn").addEventListener("click", openDrawer);
-  matchesDrawer.querySelectorAll("[data-close-drawer]").forEach((el) =>
-    el.addEventListener("click", closeDrawer)
-  );
+  $("backBtn").addEventListener("click", function () { showView("home"); });
+  $("emptyBack").addEventListener("click", function () { showView("home"); });
+  $("errorRetry").addEventListener("click", runSearch);
+  $("doneRestart").addEventListener("click", function () { showView("home"); });
 
-  function openDrawer() {
-    renderMatches();
-    matchesDrawer.hidden = false;
-  }
-  function closeDrawer() {
-    matchesDrawer.hidden = true;
+  // =======================================================================
+  //  Toast
+  // =======================================================================
+  var toastTimer = null;
+  function toast(html) {
+    toastEl.innerHTML = html;
+    toastEl.hidden = false;
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(toastEl, { y: 14, opacity: 0 }, { y: 0, opacity: 1, duration: 0.3, ease: "power3.out" });
+    }
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () {
+      if (hasGSAP && !REDUCED_MOTION) {
+        gsap.to(toastEl, { opacity: 0, duration: 0.25, onComplete: function () { toastEl.hidden = true; } });
+      } else toastEl.hidden = true;
+    }, 2200);
   }
 
   // =======================================================================
   //  Utils
   // =======================================================================
-  function escapeHtml(str) {
+  function esc(str) {
     if (str == null) return "";
     return String(str)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
-  }
-
-  // Entrance animation for the hero on first load.
-  if (hasGSAP && !REDUCED_MOTION) {
-    gsap.from(".hero-title", { y: 20, opacity: 0, duration: 0.5, ease: "power3.out" });
-    gsap.from(".hero-sub", { y: 16, opacity: 0, duration: 0.5, delay: 0.1, ease: "power3.out" });
-    gsap.from(".filters .field", {
-      y: 18,
-      opacity: 0,
-      duration: 0.45,
-      stagger: 0.08,
-      delay: 0.15,
-      ease: "power3.out",
-    });
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 })();
