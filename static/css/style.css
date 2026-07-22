@@ -1,42 +1,42 @@
 /* =========================================================================
    Align — design system
-   Light, cool-white, premium. Persian-blue accent, royal-blue ink, creamy gold
-   highlights, imperial red reserved for Pass. Generous space, soft depth.
+   Light warm-grey, premium. Mastercard orange accent, amber highlights, black
+   ink; softened red reserved for warnings and Pass. Generous space, soft depth.
    Type: SF Pro on Apple devices, Inter elsewhere.
    ========================================================================= */
 
 :root {
-  /* Canvas & surfaces — cool white (#FDFDFF family) */
-  --bg: #F4F6FB;
-  --surface: #FDFDFF;
-  --surface-2: #E9EDF6;
+  /* Canvas & surfaces — warm light grey */
+  --bg: #F6F5F2;
+  --surface: #FFFFFF;
+  --surface-2: #EDEBE6;
 
-  /* Ink — royal blue (#002A62) and blue-greys */
-  --ink: #002A62;
-  --ink-2: #475980;
-  --ink-3: #7B89A8;
+  /* Ink — Mastercard black and warm greys */
+  --ink: #141414;
+  --ink-2: #55524D;
+  --ink-3: #8D8983;
 
-  /* Accent — Persian blue (#003ECD) */
-  --accent: #003ECD;
-  --accent-press: #0032A4;
-  --accent-tint: #E8EDFC;
-  --accent-tint-2: #D4DEF9;
+  /* Accent — Mastercard orange (#FF5F00) */
+  --accent: #FF5F00;
+  --accent-press: #E05400;
+  --accent-tint: #FFEDE0;
+  --accent-tint-2: #FFDCC2;
 
-  /* Gold — Selective yellow, creamed down */
-  --gold: #F2C14E;
-  --gold-ink: #8A6410;
-  --gold-tint: #FBF2D9;
+  /* Gold — Mastercard amber (#F79E1B) */
+  --gold: #F79E1B;
+  --gold-ink: #8F5A08;
+  --gold-tint: #FDF1DC;
 
-  /* Support — Imperial red (#FF1833), reserved for Pass/danger */
-  --danger: #E5152F;
-  --danger-tint: #FFE9EC;
-  --hairline: rgba(0, 42, 98, 0.09);
-  --hairline-strong: rgba(0, 42, 98, 0.16);
+  /* Support — Mastercard red, softened; reserved for warnings/Pass only */
+  --danger: #E2413B;
+  --danger-tint: #FCEAE8;
+  --hairline: rgba(20, 18, 14, 0.08);
+  --hairline-strong: rgba(20, 18, 14, 0.15);
 
-  /* Depth — navy-tinted */
-  --shadow-card: 0 1px 2px rgba(0,42,98,.05), 0 10px 30px rgba(0,42,98,.08);
-  --shadow-float: 0 2px 6px rgba(0,42,98,.06), 0 18px 48px rgba(0,42,98,.14);
-  --shadow-pill: 0 1px 2px rgba(0,42,98,.06);
+  /* Depth — warm-black tinted */
+  --shadow-card: 0 1px 2px rgba(20,18,14,.05), 0 10px 30px rgba(20,18,14,.08);
+  --shadow-float: 0 2px 6px rgba(20,18,14,.06), 0 18px 48px rgba(20,18,14,.14);
+  --shadow-pill: 0 1px 2px rgba(20,18,14,.06);
 
   /* Shape */
   --r-card: 28px;
@@ -184,11 +184,19 @@ button { font: inherit; color: inherit; }
 .mc-line.w60 { width: 60%; } .mc-line.w40 { width: 40%; }
 .mc-pill { margin-top: auto; width: 84px; height: 26px; border-radius: 999px; background: var(--accent-tint); }
 .art-tap { position: relative; display: grid; place-items: center; }
+/* Overlapping-circles nod: amber sibling behind the orange action circle */
+.tap-sibling {
+  position: absolute;
+  width: 92px; height: 92px; border-radius: 50%;
+  background: var(--gold);
+  transform: translateX(-56px);
+  opacity: .9;
+}
 .tap-circle {
   width: 92px; height: 92px; border-radius: 50%;
   background: var(--accent); color: #fff;
   display: grid; place-items: center;
-  box-shadow: 0 14px 34px rgba(0,62,205,.32);
+  box-shadow: 0 14px 34px rgba(255,95,0,.32);
   position: relative; z-index: 1;
 }
 .tap-ring {
@@ -291,7 +299,7 @@ button { font: inherit; color: inherit; }
 .fine-print.center { text-align: center; }
 .config-warn {
   font-size: 13px; color: var(--gold-ink);
-  background: var(--gold-tint); border: 1px solid #EEDCA8;
+  background: var(--gold-tint); border: 1px solid #F3DFB4;
   padding: 12px 14px; border-radius: var(--r-md);
   line-height: 1.5;
 }
@@ -311,7 +319,7 @@ button { font: inherit; color: inherit; }
   font-size: 16px; font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(0,62,205,.25);
+  box-shadow: 0 8px 22px rgba(255,95,0,.28);
   transition: transform .15s ease, background .15s ease;
   text-decoration: none;
 }
@@ -378,7 +386,7 @@ button { font: inherit; color: inherit; }
 .w30 { width: 30%; } .w50 { width: 50%; } .w60 { width: 60%; }
 .w70 { width: 70%; } .w90 { width: 90%; }
 .shimmer {
-  background: linear-gradient(100deg, var(--surface-2) 40%, #F6F8FC 50%, var(--surface-2) 60%);
+  background: linear-gradient(100deg, var(--surface-2) 40%, #F4F2ED 50%, var(--surface-2) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -542,9 +550,9 @@ button { font: inherit; color: inherit; }
   color: #fff;
   border: none;
   font-size: 15px; font-weight: 600;
-  box-shadow: 0 8px 20px rgba(0,42,98,.24);
+  box-shadow: 0 8px 20px rgba(20,18,14,.24);
 }
-.ctrl-view:hover { background: #063B7E; }
+.ctrl-view:hover { background: #2B2B2B; }
 .deck-hint {
   text-align: center;
   font-size: 12px; color: var(--ink-3);
@@ -557,7 +565,7 @@ button { font: inherit; color: inherit; }
 .sheet { position: fixed; inset: 0; z-index: 200; }
 .sheet-backdrop {
   position: absolute; inset: 0;
-  background: rgba(0,26,60,.34);
+  background: rgba(20,18,14,.36);
   backdrop-filter: blur(2px);
 }
 .sheet-panel {

@@ -191,11 +191,11 @@
   //  Deck rendering
   // =======================================================================
   var TILE_TINTS = [
-    ["#E8EDFC", "#003ECD"], // persian blue
-    ["#E3E8F2", "#002A62"], // royal blue
-    ["#FBF2D9", "#8A6410"], // creamy gold
-    ["#FFE9EC", "#C11227"], // imperial red
-    ["#EDF1F8", "#475980"], // cool grey-blue
+    ["#FFEDE0", "#D14E00"], // mastercard orange
+    ["#FDF1DC", "#8F5A08"], // amber
+    ["#EDEBE6", "#3A3630"], // warm black
+    ["#FCEAE8", "#B33530"], // softened red
+    ["#F1EFE9", "#55524D"], // warm grey
   ];
   function tintFor(name) {
     var h = 0;
