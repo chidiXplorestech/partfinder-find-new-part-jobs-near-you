@@ -604,9 +604,11 @@
   function openSheet(sheet) {
     sheet.hidden = false;
     var panel = sheet.querySelector(".sheet-panel");
+    var backdrop = sheet.querySelector(".sheet-backdrop");
     if (hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo(sheet.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
-      gsap.fromTo(panel, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" });
+      if (backdrop) gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      var fromY = panel.classList.contains("sheet-full") ? 20 : 60;
+      gsap.fromTo(panel, { y: fromY, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" });
     }
   }
   function closeSheet(sheet) {

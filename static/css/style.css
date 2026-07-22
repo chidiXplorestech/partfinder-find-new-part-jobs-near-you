@@ -714,6 +714,25 @@ button { font: inherit; color: inherit; }
   margin: 4px auto 12px;
   flex-shrink: 0;
 }
+
+/* Full-screen detail: covers the deck entirely (fixes the doubled-card bug) */
+.sheet-cover .sheet-backdrop { display: none; }
+.sheet-panel.sheet-full {
+  top: 0; bottom: 0;
+  max-height: none;
+  height: 100dvh;
+  border-radius: 0;
+  padding: 0 20px calc(18px + env(safe-area-inset-bottom));
+  background: var(--bg);
+}
+.detail-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 0 8px;
+  flex-shrink: 0;
+}
+.detail-topbar-title { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; }
+.sheet-full .sheet-scroll { padding-top: 4px; }
+.sheet-full .detail-head .logo-tile { box-shadow: none; }
 .sheet-scroll { overflow-y: auto; overscroll-behavior: contain; flex: 1; }
 
 /* Detail sheet content */

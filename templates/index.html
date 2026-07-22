@@ -268,11 +268,18 @@
       <p class="deck-hint" id="deckHint" hidden>Swipe right to shortlist · left to pass · tap for details</p>
     </section>
 
-    <!-- ================= JOB DETAIL SHEET ================= -->
-    <div id="detailSheet" class="sheet" hidden>
-      <div class="sheet-backdrop" data-close-sheet></div>
-      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Job details">
-        <div class="sheet-grabber" aria-hidden="true"></div>
+    <!-- ================= JOB DETAIL (full screen) ================= -->
+    <div id="detailSheet" class="sheet sheet-cover" hidden>
+      <div class="sheet-panel sheet-full" role="dialog" aria-modal="true" aria-label="Job details">
+        <div class="detail-topbar">
+          <button class="icon-btn" id="detailBack" data-close-sheet aria-label="Back to jobs">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="detail-topbar-title">Job details</div>
+          <button class="icon-btn" id="detailClose" data-close-sheet aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
         <div class="sheet-scroll" id="detailBody"><!-- filled by JS --></div>
         <div class="sheet-actions">
           <button class="ctrl ctrl-save lg" id="detailSaveBtn" aria-label="Shortlist this job">
