@@ -24,20 +24,32 @@ time**: right to shortlist, left to pass, tap for details, one tap to apply.
 Search origin currently defaults to **57 Albert Grove, Nottingham, NG7 1NZ**
 (hardcoded — a per-user postcode input is a known next step).
 
-## Onboarding (first launch only, skippable, remembered in localStorage)
+## Onboarding (first launch, the full intended sequence)
 
-Three swipeable slides, then the app:
+The onboarding is one continuous flow, not just intro slides. Order:
 
-1. **"Stop scrolling through endless job boards."** — the overwhelm (a job-board
-   pile with a soft-red overload badge).
-2. **"Swipe through real jobs in seconds."** — teaches the gesture (a card
-   flanked by ✕ pass / ♥ shortlist cues).
-3. **"See one you like? One tap to apply."** — a job card sending an application
-   flying off as a paper plane.
+1. **Intro slides (×3)** — swipeable, skippable, remembered in localStorage.
+   1. *"Stop scrolling through endless job boards."* — the overwhelm.
+   2. *"Swipe through real jobs in seconds."* — teaches ✕ pass / ♥ shortlist.
+   3. *"See one you like? One tap to apply."* — application flies off.
+2. **Where are you?** *(planned)* — **postcode / location input** that sets the
+   search origin, replacing the hardcoded NG7 1NZ so it works for any user.
+3. **Create your account** *(planned)* — **email + password on one page**, with
+   an **email-validity check** and **strong-password** enforcement. Ties saved
+   jobs and the £1 unlock to a person, not just a device cookie.
+4. **Unlock Align — £1** *(paywall, move here)* — surface the "less than a
+   coffee" £1 unlock **right after onboarding**, not only at first search.
+
+→ then into the app.
+
+Onboarding (and the app) should feel like the **Tinder rebrand for jobs** —
+bold, expressive, editorial — carried by **photographic Magnific-generated
+imagery** on the slides (and wherever it lifts the UI), not the current
+"clean fintech" look.
 
 ## App flow & screens
 
-`Onboarding → Home (set up search) → Deck (swipe) → Job detail → Apply → Matches`
+`Onboarding (slides → postcode → account → £1 paywall) → Home → Deck (swipe) → Job detail → Apply → Matches`
 
 - **Home:** category (Sales, Customer Service, Office, Remote, Retail, Housing,
   Contract) · available days · radius (3/5/10/15 mi) · "Start swiping".
@@ -87,21 +99,16 @@ Three swipeable slides, then the app:
   Secrets: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `SECRET_KEY` (+ paywall vars).
   `.env` is git-ignored — never commit real keys.
 
-## Improvements to make (requested)
+## Build status
 
-- **Postcode input** — replace the hardcoded NG7 1NZ origin with a per-user
-  location/postcode field so it works anywhere (needed to scale).
-- **Quick account setup** — email + password on one page, with **email
-  validity check** and **strong-password** enforcement.
-- **Consistent navigation** — clear **home / back / X** controls on every
-  screen and sheet (no dead ends).
-- **Paywall after onboarding** — surface the £1 unlock right after onboarding,
-  not only at first search.
-- **Real imagery** — photographic **Magnific**-generated art for onboarding
-  (and wherever it lifts the UI), in the Tinder-rebrand vibe.
-- **Look more like the Tinder rebrand** — bolder, more expressive, editorial
-  (currently reads too "clean fintech").
-- **Fixed:** "View job" doubled-card bug + missing close/back on job detail.
+- **Done:** intro slides, home, deck, job detail (full-screen, back + ✕),
+  Apply + application-sent, matches, states, £1 GoCardless/Stripe paywall,
+  Mastercard palette, bespoke SVG art. "View job" doubled-card bug fixed.
+- **Planned (onboarding sequence above):** postcode/location input; email +
+  password account setup (validity + strong-password); paywall moved to
+  straight after onboarding.
+- **Planned (polish):** consistent **home / back / X** on every screen (no dead
+  ends); photographic **Magnific** imagery; bolder Tinder-rebrand visual pivot.
 
 ## Conventions for future work
 
