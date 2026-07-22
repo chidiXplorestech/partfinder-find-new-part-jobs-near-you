@@ -57,10 +57,15 @@
         <!-- Slide 3 -->
         <div class="ob-slide">
           <div class="ob-art" aria-hidden="true">
-            <div class="art-tap">
-              <div class="tap-sibling"></div>
-              <div class="tap-circle"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg></div>
-              <div class="tap-ring"></div>
+            <div class="art-apply">
+              <div class="mini-card solo">
+                <div class="mc-logo"></div>
+                <div class="mc-line w60"></div>
+                <div class="mc-line w40 dim"></div>
+                <div class="mc-apply"></div>
+              </div>
+              <svg class="plane" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              <svg class="plane-trail" viewBox="0 0 60 40" width="60" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 38c14-2 26-8 34-18" stroke-dasharray="1 8"/></svg>
             </div>
           </div>
           <h1 class="ob-title">See one you like? One tap to apply.</h1>
@@ -185,7 +190,14 @@
 
       <!-- Empty -->
       <div id="emptyState" class="state" hidden>
-        <div class="state-art"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg></div>
+        <div class="state-art xl">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
+            <circle cx="27" cy="27" r="15" stroke="currentColor" stroke-width="3"/>
+            <path d="m38.5 38.5 12 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <path d="M50 8l1.6 4.4L56 14l-4.4 1.6L50 20l-1.6-4.4L44 14l4.4-1.6L50 8z" fill="#F79E1B"/>
+            <path d="M22 27a5 5 0 0 1 5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>
+          </svg>
+        </div>
         <h2>We're still looking</h2>
         <p class="state-msg">New jobs arrive every day. Try a wider radius or a different kind of work.</p>
         <button class="btn-secondary" id="emptyBack">Adjust search</button>
@@ -193,7 +205,17 @@
 
       <!-- Caught up -->
       <div id="doneState" class="state" hidden>
-        <div class="state-art"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+        <div class="state-art xl">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
+            <circle cx="32" cy="34" r="17" stroke="currentColor" stroke-width="3"/>
+            <path d="m24.5 34.5 5.5 5.5 10-11" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="10" cy="18" r="2.6" fill="#F79E1B"/>
+            <circle cx="54" cy="14" r="2.2" fill="currentColor"/>
+            <circle cx="57" cy="42" r="2.6" fill="#F79E1B"/>
+            <circle cx="14" cy="50" r="2" fill="currentColor" opacity=".55"/>
+            <path d="M30 6l1.2 3.2L34.5 10l-3.3 1.2L30 14.5l-1.2-3.3L25.5 10l3.3-.8L30 6z" fill="#F79E1B"/>
+          </svg>
+        </div>
         <h2>That's everything for now</h2>
         <p class="state-msg">You've seen every job that fits. New ones land daily — <span id="doneSavedLine">come back tomorrow.</span></p>
         <div class="done-actions">
@@ -268,6 +290,12 @@
         <div class="sheet-grabber" aria-hidden="true"></div>
         <div class="paywall-body">
           <div class="paywall-mark">Align<span class="wordmark-dot">.</span></div>
+          <svg class="paywall-art" viewBox="0 0 64 64" width="74" height="74" fill="none" aria-hidden="true">
+            <path d="M26 5c-1.6 2.6.9 4.2.9 6.6M33.5 3c-1.6 2.6.9 4.2.9 6.6" stroke="#F79E1B" stroke-width="2.4" stroke-linecap="round"/>
+            <rect x="15" y="15" width="32" height="6.5" rx="3.2" fill="#141414"/>
+            <path d="M18.5 21.5h25l-2.7 27.2a4 4 0 0 1-4 3.6H25.2a4 4 0 0 1-4-3.6l-2.7-27.2z" fill="#FFEDE0" stroke="#141414" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M20 34.5h22l-.7 7H20.7l-.7-7z" fill="#F79E1B"/>
+          </svg>
           <h2 class="paywall-title">Less than a coffee.</h2>
           <p class="paywall-copy">
             <strong id="paywallPrice">£1</strong> unlocks Align for good. It covers the live job data,
