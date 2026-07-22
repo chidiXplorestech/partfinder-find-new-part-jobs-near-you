@@ -1,0 +1,30 @@
+# Render.com Blueprint — one-click deploy for Align.
+# In Render: New → Blueprint → connect this repo. Render reads this file,
+# then prompts you for the secret values marked `sync: false` below.
+services:
+  - type: web
+    name: align
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app --bind 0.0.0.0:$PORT --workers 2 --timeout 30
+    healthCheckPath: /healthz
+    envVars:
+      - key: ADZUNA_APP_ID
+        sync: false          # you paste this in the Render dashboard
+      - key: ADZUNA_APP_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true  # Render generates a strong random value
+      - key: PAYWALL_ENABLED
+        value: "0"           # set to "1" to switch the £1 paywall on
+      - key: STRIPE_SECRET_KEY
+        sync: false          # your Stripe secret key (only needed if paywall on)
+      - key: PRICE_PENCE
+        value: "100"
+      - key: CURRENCY
+        value: "gbp"
+      - key: PUBLIC_BASE_URL
+        sync: false          # set to your Render URL, e.g. https://align.onrender.com
+      - key: FLASK_DEBUG
+        value: "0"

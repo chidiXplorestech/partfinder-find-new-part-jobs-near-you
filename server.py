@@ -1,4 +1,4 @@
-"""PartFinder Flask application entry point.
+"""Align Flask application entry point.
 
 Run locally with::
 
@@ -13,11 +13,19 @@ from __future__ import annotations
 
 import logging
 
-from flask import Flask, jsonify, render_template, request
+from flask import (
+    Flask,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 
-from partfinder import config
-from partfinder.adzuna_client import AdzunaClient
-from partfinder.config import (
+from align import config
+from align.adzuna_client import AdzunaClient
+from align.config import (
     CATEGORY_MAP,
     CATEGORY_ORDER,
     DAYS_OF_WEEK,
@@ -26,13 +34,14 @@ from partfinder.config import (
     WEEKS_PER_YEAR,
     get_settings,
 )
-from partfinder.models import SearchQuery
-from partfinder.orchestrator import SearchOrchestrator
+from align.models import SearchQuery
+from align.orchestrator import SearchOrchestrator
+from align.payments import PaymentError, StripeGateway
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
 )
-logger = logging.getLogger("partfinder")
+logger = logging.getLogger("align")
 
 
 def create_app() -> Flask:
@@ -43,6 +52,7 @@ def create_app() -> Flask:
 
     client = AdzunaClient(settings)
     orchestrator = SearchOrchestrator(client)
+    payments = StripeGateway(settings)
 
     # -------------------------------------------------------------- #
     # Pages
@@ -60,6 +70,9 @@ def create_app() -> Flask:
             radii=config.ALLOWED_RADII,
             min_pay=MIN_HOURLY_PAY,
             adzuna_configured=settings.adzuna_configured,
+            paywall_active=settings.paywall_active,
+            price_display=settings.price_display,
+            is_paid=bool(session.get("paid")),
         )
 
     # -------------------------------------------------------------- #
@@ -80,6 +93,20 @@ def create_app() -> Flask:
             return (
                 jsonify({"ok": False, "error": "Please choose a valid category."}),
                 400,
+            )
+
+        # Paywall gate: block matches until the user has paid (when enabled).
+        if settings.paywall_active and not session.get("paid"):
+            return (
+                jsonify(
+                    {
+                        "ok": False,
+                        "needs_payment": True,
+                        "price": settings.price_display,
+                        "error": "Unlock Align to see your matches.",
+                    }
+                ),
+                402,
             )
 
         if not get_settings().adzuna_configured:
@@ -116,10 +143,47 @@ def create_app() -> Flask:
             }
         )
 
+    # -------------------------------------------------------------- #
+    # Paywall (Stripe Checkout)
+    # -------------------------------------------------------------- #
+    @app.route("/api/checkout", methods=["POST"])
+    def api_checkout():
+        """Create a Stripe Checkout session and return its URL for redirect."""
+        if not settings.paywall_active:
+            # Paywall off -> treat everyone as already unlocked.
+            session["paid"] = True
+            return jsonify({"ok": True, "unlocked": True})
+        try:
+            checkout_url = payments.create_checkout(origin=request.host_url)
+        except PaymentError as exc:
+            return jsonify({"ok": False, "error": str(exc)}), 502
+        return jsonify({"ok": True, "checkout_url": checkout_url})
+
+    @app.route("/pay/success")
+    def pay_success():
+        """Verify the completed payment with Stripe, then unlock access."""
+        session_id = request.args.get("session_id", "")
+        try:
+            paid = payments.is_paid(session_id)
+        except PaymentError:
+            paid = False
+        if paid:
+            session["paid"] = True
+            return redirect(url_for("index", paid="1"))
+        return redirect(url_for("index", pay="failed"))
+
+    @app.route("/pay/cancel")
+    def pay_cancel():
+        """User backed out of Stripe Checkout."""
+        return redirect(url_for("index", pay="cancelled"))
+
     @app.route("/healthz")
     def healthz():
         """Simple health probe for deploys."""
-        return jsonify({"status": "ok", "adzuna": get_settings().adzuna_configured})
+        s = get_settings()
+        return jsonify(
+            {"status": "ok", "adzuna": s.adzuna_configured, "paywall": s.paywall_active}
+        )
 
     return app
 

@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from partfinder import config
-from partfinder.filters import (
+from align import config
+from align.filters import (
     compute_distance,
     filter_jobs,
     haversine_miles,
@@ -16,7 +16,7 @@ from partfinder.filters import (
     passes_freshness,
     passes_pay_floor,
 )
-from partfinder.models import Job
+from align.models import Job
 
 
 def make_job(**overrides) -> Job:

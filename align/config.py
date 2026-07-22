@@ -174,10 +174,39 @@ class Settings:
         in {"1", "true", "yes"}
     )
 
+    # --- Paywall (Stripe Checkout) --- #
+    paywall_enabled: bool = field(
+        default_factory=lambda: os.getenv("PAYWALL_ENABLED", "0").lower()
+        in {"1", "true", "yes"}
+    )
+    stripe_secret_key: str = field(
+        default_factory=lambda: os.getenv("STRIPE_SECRET_KEY", "")
+    )
+    #: Access price in the smallest currency unit (pence). 100 = £1.00.
+    price_pence: int = field(
+        default_factory=lambda: int(os.getenv("PRICE_PENCE", "100"))
+    )
+    currency: str = field(default_factory=lambda: os.getenv("CURRENCY", "gbp"))
+    #: Public base URL of the deployed app (used for Stripe redirect URLs).
+    public_base_url: str = field(
+        default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
+    )
+
     @property
     def adzuna_configured(self) -> bool:
         """True when both Adzuna credentials are present."""
         return bool(self.adzuna_app_id and self.adzuna_app_key)
+
+    @property
+    def paywall_active(self) -> bool:
+        """True only when the paywall is switched on AND Stripe is configured."""
+        return bool(self.paywall_enabled and self.stripe_secret_key)
+
+    @property
+    def price_display(self) -> str:
+        """Human-friendly price, e.g. '£1.00'."""
+        symbol = {"gbp": "£", "usd": "$", "eur": "€"}.get(self.currency.lower(), "")
+        return f"{symbol}{self.price_pence / 100:.2f}"
 
 
 def get_settings() -> Settings:

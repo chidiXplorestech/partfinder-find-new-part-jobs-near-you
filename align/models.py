@@ -1,4 +1,4 @@
-"""Typed data models used across the PartFinder pipeline."""
+"""Typed data models used across the Align pipeline."""
 
 from __future__ import annotations
 

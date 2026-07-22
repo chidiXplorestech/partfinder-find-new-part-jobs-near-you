@@ -1,9 +1,9 @@
-# PartFinder 🔥
+# Align 🔥
 
 **The Tinder for part-time jobs.** Swipe real, local part-time roles near the
 University of Nottingham, match with the ones that fit, and apply in one tap.
 
-PartFinder pulls **live listings from the Adzuna GB Jobs API** (called
+Align pulls **live listings from the Adzuna GB Jobs API** (called
 server-side, so the API key never touches the browser and there's no CORS),
 filters out anything that isn't a genuine, fresh, living-wage part-time role,
 ranks what's left by how well it matches *you*, and presents it as a dark,
@@ -26,9 +26,11 @@ fake jobs, ever.
 - 🧹 **Honest filtering** — rejects full-time/senior/manager roles, anything
   paying under **£12.71/hr**, listings older than 14 days, and jobs outside your
   chosen radius of NG7 1NZ.
-- 🪗 **Graceful search** — if strict filters return too little, PartFinder
+- 🪗 **Graceful search** — if strict filters return too little, Align
   automatically relaxes (drops the category tag, widens the radius) and tells
   you what it did, so the deck is rarely empty.
+- 💳 **Optional £1 paywall** — an off-by-default Stripe Checkout gate that
+  charges a one-time fee to unlock matches (see [Paywall](#paywall-1-unlock)).
 - ♿ Explicit loading / empty / error / "all caught up" states, and
   `prefers-reduced-motion` support.
 
@@ -37,7 +39,7 @@ fake jobs, ever.
 ## Architecture
 
 ```
-partfinder/
+align/
 ├── config.py          # constants, category → Adzuna mapping, ranking weights
 ├── models.py          # SearchQuery + Job dataclasses (typed)
 ├── adzuna_client.py    # server-side Adzuna API client + normalisation
@@ -122,6 +124,11 @@ Open <http://127.0.0.1:5000>.
 | `HOST`            | ➖       | `127.0.0.1` | Bind host                             |
 | `PORT`            | ➖       | `5000`      | Bind port                             |
 | `FLASK_DEBUG`     | ➖       | `0`         | `1` to enable debug/auto-reload       |
+| `PAYWALL_ENABLED` | ➖       | `0`         | `1` to require the £1 payment          |
+| `STRIPE_SECRET_KEY`| ➖ (if paywall) | — | Stripe secret key (`sk_test_…`/`sk_live_…`) |
+| `PRICE_PENCE`     | ➖       | `100`       | Access price in pence (100 = £1.00)   |
+| `CURRENCY`        | ➖       | `gbp`       | Stripe currency code                  |
+| `PUBLIC_BASE_URL` | ➖       | —           | Deployed URL, for Stripe return links |
 
 ---
 
@@ -137,12 +144,57 @@ weighted scoring, Match % banding, and best-first ordering.
 
 ---
 
+## Paywall (£1 unlock)
+
+Align ships with an **optional** one-time paywall, powered by
+[Stripe Checkout](https://stripe.com/gb/payments/checkout) (a Stripe-hosted
+payment page — the app never sees card details, so you stay out of PCI scope).
+
+It is **off by default**: with `PAYWALL_ENABLED=0` the app is completely free and
+`stripe` is never called. To switch it on:
+
+1. Create a free Stripe account at <https://dashboard.stripe.com>.
+2. Copy your **secret key** from <https://dashboard.stripe.com/apikeys>
+   (`sk_test_…` while testing, `sk_live_…` when you're ready for real money).
+3. Set these environment variables (locally in `.env`, or in your host's
+   dashboard):
+   ```env
+   PAYWALL_ENABLED=1
+   STRIPE_SECRET_KEY=sk_test_your_key_here
+   PRICE_PENCE=100            # £1.00
+   PUBLIC_BASE_URL=https://your-app-url   # your live URL once deployed
+   ```
+4. Restart. Now "Find my matches" shows a £1 unlock screen; after paying, the
+   user's session is unlocked and Stripe redirects them back automatically.
+
+**How it stays secure:** the `/api/search` endpoint refuses to return matches
+until the server has confirmed a completed payment *with Stripe directly*
+(`payment_status == "paid"`), so a user can't forge the return URL to skip
+paying. Test it with Stripe's test card `4242 4242 4242 4242`, any future expiry
+and any CVC.
+
+> 💡 Payment unlocks access for the current browser session. For permanent
+> per-user accounts you'd add a login + database — out of scope for this build.
+
+---
+
 ## Deploy (free, shareable URL)
 
-The repo includes a `Procfile` and `runtime.txt`, so it deploys as-is to
-[Render](https://render.com) or [Railway](https://railway.app).
+The repo includes a `Procfile`, `runtime.txt` and a `render.yaml` blueprint, so
+it deploys as-is to [Render](https://render.com) or [Railway](https://railway.app).
 
-**Render**
+**Render — one click (recommended)**
+
+1. Push this repo to your GitHub.
+2. In Render: **New → Blueprint** → connect the repo. Render reads `render.yaml`
+   and creates the service for you.
+3. When prompted, paste `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` (and, if you want
+   the paywall, `STRIPE_SECRET_KEY` + set `PAYWALL_ENABLED=1`). `SECRET_KEY` is
+   generated automatically.
+4. Deploy. You get a public URL like `https://align.onrender.com` — set that as
+   `PUBLIC_BASE_URL` if you enabled the paywall.
+
+**Render — manual**
 
 1. New → Web Service → connect this repo.
 2. Build command: `pip install -r requirements.txt`
@@ -161,7 +213,7 @@ Health probe: `GET /healthz`.
 ## Notes & limitations
 
 - Adzuna caps `results_per_page` at 50 and its data quality varies (salary and
-  coordinates are often missing). PartFinder treats missing data as *unknown, not
+  coordinates are often missing). Align treats missing data as *unknown, not
   disqualifying*, and leans on Adzuna's own `where` + `distance` geo-filter as
   the primary distance guard.
 - The origin is fixed to **57 Albert Grove, Nottingham, NG7 1NZ**

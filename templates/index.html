@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0E1116" />
-  <title>PartFinder — swipe your next part-time job</title>
-  <meta name="description" content="PartFinder is the Tinder for part-time jobs near the University of Nottingham. Swipe. Match. Apply." />
+  <title>Align — swipe your next part-time job</title>
+  <meta name="description" content="Align is the Tinder for part-time jobs near the University of Nottingham. Swipe. Match. Apply." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
@@ -17,7 +17,7 @@
     <!-- ============ TOP BAR ============ -->
     <header class="topbar">
       <div class="brand">
-        <span class="brand-flame">Part</span><span class="brand-mark">Finder</span>
+        <span class="brand-flame">Align</span><span class="brand-dot">.</span>
       </div>
       <button id="matchesBtn" class="icon-btn" aria-label="View your matches" title="Your matches">
         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
@@ -161,6 +161,25 @@
       </div>
     </div>
 
+    <!-- ============ PAYWALL OVERLAY ============ -->
+    <div id="paywallOverlay" class="paywall-overlay" hidden>
+      <div class="paywall-card">
+        <div class="paywall-flame">🔥</div>
+        <h2 class="paywall-title">Unlock <span class="grad-text">Align</span></h2>
+        <p class="paywall-price"><span id="paywallPrice">£1.00</span> <span class="paywall-once">one-time</span></p>
+        <ul class="paywall-perks">
+          <li>Unlimited swiping through live local jobs</li>
+          <li>Real one-tap Apply links</li>
+          <li>Your saved matches, kept together</li>
+        </ul>
+        <button class="btn-primary" id="paywallPayBtn">
+          <span id="paywallBtnLabel">Unlock for £1</span>
+        </button>
+        <button class="paywall-later" id="paywallLater">Maybe later</button>
+        <p class="paywall-secure">🔒 Secure payment by Stripe · we never see your card</p>
+      </div>
+    </div>
+
     <!-- ============ IT'S A MATCH OVERLAY ============ -->
     <div id="matchOverlay" class="match-overlay" hidden>
       <div class="match-burst"></div>
@@ -172,6 +191,14 @@
     </div>
 
   </div>
+
+  <script>
+    window.ALIGN_CONFIG = {
+      paywallActive: {{ paywall_active | tojson }},
+      price: {{ price_display | tojson }},
+      isPaid: {{ is_paid | tojson }}
+    };
+  </script>
 
   <!-- GSAP + Draggable (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>

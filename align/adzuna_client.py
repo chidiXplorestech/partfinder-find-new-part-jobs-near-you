@@ -1,7 +1,7 @@
 """Server-side Adzuna GB Jobs API client.
 
 The client is intentionally thin: it builds a request, calls Adzuna, and
-normalises the raw payload into :class:`~partfinder.models.Job` objects. All
+normalises the raw payload into :class:`~align.models.Job` objects. All
 calls happen on the server so the API key never reaches the browser and CORS
 is never an issue.
 """

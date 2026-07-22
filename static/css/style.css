@@ -1,5 +1,5 @@
 /* =========================================================================
-   PartFinder — dark "Tinder 2025 rebrand" swipe app
+   Align — dark "Tinder 2025 rebrand" swipe app
    ========================================================================= */
 
 :root {
@@ -84,6 +84,7 @@ body::before {
   -webkit-text-fill-color: transparent;
 }
 .brand-mark { color: var(--text); }
+.brand-dot { color: var(--flame-b); }
 
 .icon-btn {
   position: relative;
@@ -569,6 +570,61 @@ body::before {
   background: radial-gradient(circle, rgba(253,41,123,0.5), rgba(255,96,54,0.2) 45%, transparent 70%);
   filter: blur(10px);
 }
+
+/* ---------- Paywall ---------- */
+.paywall-overlay {
+  position: fixed; inset: 0; z-index: 55;
+  display: grid; place-items: center;
+  padding: 20px;
+  background: rgba(14, 17, 22, 0.82);
+  backdrop-filter: blur(8px);
+}
+.paywall-card {
+  width: 100%; max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 28px;
+  padding: 30px 24px 22px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  animation: sheet-up .3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.paywall-flame { font-size: 46px; }
+.paywall-title { font-size: 26px; font-weight: 900; letter-spacing: -0.02em; margin-top: 6px; }
+.paywall-price { margin-top: 6px; font-size: 34px; font-weight: 900; letter-spacing: -0.03em; }
+.paywall-once { font-size: 13px; font-weight: 600; color: var(--text-3); letter-spacing: 0; }
+.paywall-perks {
+  list-style: none;
+  text-align: left;
+  margin: 18px auto 20px;
+  max-width: 280px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.paywall-perks li {
+  position: relative;
+  padding-left: 26px;
+  font-size: 14px;
+  color: var(--text-2);
+  line-height: 1.35;
+}
+.paywall-perks li::before {
+  content: "✓";
+  position: absolute; left: 0;
+  color: var(--green);
+  font-weight: 900;
+}
+.paywall-later {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 8px;
+  background: none; border: none;
+  color: var(--text-3);
+  font-size: 14px; font-weight: 600;
+  cursor: pointer;
+}
+.paywall-later:hover { color: var(--text); }
+.paywall-secure { margin-top: 12px; font-size: 11.5px; color: var(--text-3); }
 
 /* ---------- Reduced motion ---------- */
 @media (prefers-reduced-motion: reduce) {
