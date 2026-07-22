@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0E1116" />
+  <title>PartFinder — swipe your next part-time job</title>
+  <meta name="description" content="PartFinder is the Tinder for part-time jobs near the University of Nottingham. Swipe. Match. Apply." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <div class="app-shell">
+
+    <!-- ============ TOP BAR ============ -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-flame">Part</span><span class="brand-mark">Finder</span>
+      </div>
+      <button id="matchesBtn" class="icon-btn" aria-label="View your matches" title="Your matches">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <span id="matchesCount" class="matches-count" hidden>0</span>
+      </button>
+    </header>
+
+    <!-- ============ VIEW: HOME / FILTERS ============ -->
+    <main id="homeView" class="view">
+      <section class="hero">
+        <h1 class="hero-title">Find your<br /><span class="grad-text">perfect shift.</span></h1>
+        <p class="hero-sub">Swipe real, local part-time jobs near the University of Nottingham. Match with the ones that fit — apply in one tap.</p>
+      </section>
+
+      <form id="searchForm" class="filters" autocomplete="off">
+        <!-- Category -->
+        <fieldset class="field">
+          <legend class="field-label">What are you into?</legend>
+          <div class="chips" role="radiogroup" id="categoryChips">
+            {% for cat in categories %}
+            <label class="chip">
+              <input type="radio" name="category" value="{{ cat.key }}" {% if loop.first %}checked{% endif %} />
+              <span>{{ cat.label }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <!-- Days -->
+        <fieldset class="field">
+          <legend class="field-label">When are you free?</legend>
+          <div class="chips" id="dayChips">
+            {% for day in days %}
+            <label class="chip chip-day">
+              <input type="checkbox" name="days" value="{{ day }}" {% if day in ['Saturday','Sunday'] %}checked{% endif %} />
+              <span>{{ day[:3] }}</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <!-- Radius -->
+        <fieldset class="field">
+          <legend class="field-label">How far will you go?</legend>
+          <div class="chips" role="radiogroup" id="radiusChips">
+            {% for r in radii %}
+            <label class="chip">
+              <input type="radio" name="radius" value="{{ r }}" {% if r == 5 %}checked{% endif %} />
+              <span>{{ r }} mi</span>
+            </label>
+            {% endfor %}
+          </div>
+        </fieldset>
+
+        <p class="pay-note">Only roles paying <strong>£{{ '%.2f'|format(min_pay) }}/hr</strong> or more · posted in the last 14 days · around NG7&nbsp;1NZ.</p>
+
+        {% if not adzuna_configured %}
+        <p class="config-warn">⚠️ Adzuna API keys are missing. Add them to <code>.env</code> and restart to see live jobs.</p>
+        {% endif %}
+
+        <button type="submit" class="btn-primary" id="findBtn">
+          <span>Find my matches</span>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
+      </form>
+    </main>
+
+    <!-- ============ VIEW: DECK / RESULTS ============ -->
+    <section id="deckView" class="view" hidden>
+      <div class="deck-head">
+        <button id="backBtn" class="icon-btn" aria-label="Back to filters">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        </button>
+        <div id="deckTitle" class="deck-title">Your matches</div>
+        <div class="icon-btn ghost"></div>
+      </div>
+
+      <div id="deckNotice" class="deck-notice" hidden></div>
+
+      <!-- Loading -->
+      <div id="loadingState" class="state" hidden>
+        <div class="spinner" role="status" aria-label="Loading"></div>
+        <p>Finding jobs that match you…</p>
+      </div>
+
+      <!-- Error -->
+      <div id="errorState" class="state" hidden>
+        <div class="state-emoji">😵‍💫</div>
+        <h2>Something went sideways</h2>
+        <p id="errorMessage" class="state-msg"></p>
+        <button class="btn-secondary" id="errorRetry">Try again</button>
+      </div>
+
+      <!-- No matches -->
+      <div id="emptyState" class="state" hidden>
+        <div class="state-emoji">🔍</div>
+        <h2>No matches right now</h2>
+        <p class="state-msg">Nothing local fit your filters today. Try a different category or a wider radius.</p>
+        <button class="btn-secondary" id="emptyBack">Adjust filters</button>
+      </div>
+
+      <!-- All caught up -->
+      <div id="doneState" class="state" hidden>
+        <div class="state-emoji">🎉</div>
+        <h2>You're all caught up</h2>
+        <p class="state-msg">You've seen every match. Saved <span id="doneSavedCount">0</span> — check them in your matches.</p>
+        <div class="done-actions">
+          <button class="btn-secondary" id="doneMatches">View matches</button>
+          <button class="btn-primary compact" id="doneRestart">New search</button>
+        </div>
+      </div>
+
+      <!-- Card deck -->
+      <div id="cardDeck" class="card-deck" hidden></div>
+
+      <!-- Control bar -->
+      <div id="controlBar" class="control-bar" hidden>
+        <button class="ctrl ctrl-pass" id="passBtn" aria-label="Pass">
+          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+        <button class="ctrl ctrl-save" id="saveBtn" aria-label="Save">
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        </button>
+        <button class="ctrl ctrl-apply" id="applyBtn" aria-label="Apply">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- ============ MATCHES DRAWER ============ -->
+    <div id="matchesDrawer" class="drawer" hidden>
+      <div class="drawer-backdrop" data-close-drawer></div>
+      <div class="drawer-panel" role="dialog" aria-label="Your matches">
+        <div class="drawer-head">
+          <h2>Your matches</h2>
+          <button class="icon-btn" data-close-drawer aria-label="Close">
+            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+        <div id="matchesList" class="matches-list"></div>
+      </div>
+    </div>
+
+    <!-- ============ IT'S A MATCH OVERLAY ============ -->
+    <div id="matchOverlay" class="match-overlay" hidden>
+      <div class="match-burst"></div>
+      <div class="match-content">
+        <div class="match-title grad-text">It's a match!</div>
+        <p id="matchLine" class="match-line"></p>
+        <div class="match-spark">🔥</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- GSAP + Draggable (CDN) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
