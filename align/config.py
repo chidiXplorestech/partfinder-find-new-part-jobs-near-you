@@ -174,11 +174,23 @@ class Settings:
         in {"1", "true", "yes"}
     )
 
-    # --- Paywall (Stripe Checkout) --- #
+    # --- Paywall --- #
     paywall_enabled: bool = field(
         default_factory=lambda: os.getenv("PAYWALL_ENABLED", "0").lower()
         in {"1", "true", "yes"}
     )
+    #: GoCardless hosted payment link (https://pay.gocardless.com/...). When set,
+    #: this is the primary payment method and the CTA links straight to it.
+    gocardless_payment_link: str = field(
+        default_factory=lambda: os.getenv("GOCARDLESS_PAYMENT_LINK", "").strip()
+    )
+    #: Shared secret appended to the GoCardless success-redirect URL so that
+    #: only a genuine post-payment return can unlock access. Optional but
+    #: recommended (see README).
+    payment_return_token: str = field(
+        default_factory=lambda: os.getenv("PAYMENT_RETURN_TOKEN", "").strip()
+    )
+    #: Stripe secret key (fallback payment method if no GoCardless link is set).
     stripe_secret_key: str = field(
         default_factory=lambda: os.getenv("STRIPE_SECRET_KEY", "")
     )
@@ -187,7 +199,7 @@ class Settings:
         default_factory=lambda: int(os.getenv("PRICE_PENCE", "100"))
     )
     currency: str = field(default_factory=lambda: os.getenv("CURRENCY", "gbp"))
-    #: Public base URL of the deployed app (used for Stripe redirect URLs).
+    #: Public base URL of the deployed app (used for payment redirect URLs).
     public_base_url: str = field(
         default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
     )
@@ -198,9 +210,25 @@ class Settings:
         return bool(self.adzuna_app_id and self.adzuna_app_key)
 
     @property
+    def payment_provider(self) -> str:
+        """Which payment method is active: 'gocardless', 'stripe' or 'none'."""
+        if self.gocardless_payment_link:
+            return "gocardless"
+        if self.stripe_secret_key:
+            return "stripe"
+        return "none"
+
+    @property
+    def payment_provider_label(self) -> str:
+        """Human-friendly provider name for the UI."""
+        return {"gocardless": "GoCardless", "stripe": "Stripe"}.get(
+            self.payment_provider, ""
+        )
+
+    @property
     def paywall_active(self) -> bool:
-        """True only when the paywall is switched on AND Stripe is configured."""
-        return bool(self.paywall_enabled and self.stripe_secret_key)
+        """True only when the paywall is on AND a payment method is configured."""
+        return bool(self.paywall_enabled and self.payment_provider != "none")
 
     @property
     def price_display(self) -> str:

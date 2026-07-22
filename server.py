@@ -72,6 +72,7 @@ def create_app() -> Flask:
             adzuna_configured=settings.adzuna_configured,
             paywall_active=settings.paywall_active,
             price_display=settings.price_display,
+            payment_provider_label=settings.payment_provider_label,
             is_paid=bool(session.get("paid")),
         )
 
@@ -144,15 +145,23 @@ def create_app() -> Flask:
         )
 
     # -------------------------------------------------------------- #
-    # Paywall (Stripe Checkout)
+    # Paywall (GoCardless payment link, or Stripe Checkout fallback)
     # -------------------------------------------------------------- #
     @app.route("/api/checkout", methods=["POST"])
     def api_checkout():
-        """Create a Stripe Checkout session and return its URL for redirect."""
+        """Return the URL the browser should be sent to in order to pay."""
         if not settings.paywall_active:
             # Paywall off -> treat everyone as already unlocked.
             session["paid"] = True
             return jsonify({"ok": True, "unlocked": True})
+
+        if settings.payment_provider == "gocardless":
+            # Hosted GoCardless link — just hand the browser straight to it.
+            return jsonify(
+                {"ok": True, "checkout_url": settings.gocardless_payment_link}
+            )
+
+        # Stripe fallback: create a Checkout Session server-side.
         try:
             checkout_url = payments.create_checkout(origin=request.host_url)
         except PaymentError as exc:
@@ -161,7 +170,26 @@ def create_app() -> Flask:
 
     @app.route("/pay/success")
     def pay_success():
-        """Verify the completed payment with Stripe, then unlock access."""
+        """Confirm payment, then unlock access for this browser session.
+
+        * Stripe: the payment is verified server-side against the API.
+        * GoCardless: hosted payment links can't be verified from a static
+          redirect, so we gate the unlock on a shared ``token`` that you
+          configure on the GoCardless success-redirect URL. If no token is set
+          we unlock on return (trust-based) — see the README for the fully
+          verified webhook option.
+        """
+        provider = settings.payment_provider
+
+        if provider == "gocardless":
+            expected = settings.payment_return_token
+            supplied = request.args.get("token", "")
+            if expected and supplied != expected:
+                return redirect(url_for("index", pay="failed"))
+            session["paid"] = True
+            return redirect(url_for("index", paid="1"))
+
+        # Stripe path: verify the checkout session was actually paid.
         session_id = request.args.get("session_id", "")
         try:
             paid = payments.is_paid(session_id)
@@ -174,7 +202,7 @@ def create_app() -> Flask:
 
     @app.route("/pay/cancel")
     def pay_cancel():
-        """User backed out of Stripe Checkout."""
+        """User backed out of the payment page."""
         return redirect(url_for("index", pay="cancelled"))
 
     @app.route("/healthz")

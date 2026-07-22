@@ -176,7 +176,7 @@
           <span id="paywallBtnLabel">Unlock for £1</span>
         </button>
         <button class="paywall-later" id="paywallLater">Maybe later</button>
-        <p class="paywall-secure">🔒 Secure payment by Stripe · we never see your card</p>
+        <p class="paywall-secure">🔒 Secure payment by {{ payment_provider_label or 'GoCardless' }} · we never see your card details</p>
       </div>
     </div>
 
