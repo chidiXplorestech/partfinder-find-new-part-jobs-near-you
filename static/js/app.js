@@ -63,10 +63,23 @@
     topbar.hidden = false;
     showView("home");
     persist("align.onboarded", true);
+    showHeroPill();
     if (hasGSAP && !REDUCED_MOTION) {
-      gsap.from(".hero-eyebrow, .hero-title", { y: 14, opacity: 0, duration: 0.5, stagger: 0.07, ease: "power3.out" });
-      gsap.from(".setup .field, .setup .btn-cta", { y: 16, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.12, ease: "power3.out" });
+      gsap.from(".hero-pill", { y: 10, opacity: 0, duration: 0.5, ease: "power3.out" });
+      gsap.from(".hero-eyebrow, .hero-title", { y: 14, opacity: 0, duration: 0.5, stagger: 0.07, delay: 0.05, ease: "power3.out" });
+      gsap.from(".setup .field, .setup .btn-cta", { y: 16, opacity: 0, duration: 0.45, stagger: 0.06, delay: 0.14, ease: "power3.out" });
     }
+  }
+
+  function showHeroPill() {
+    // If the user has run a search this session, echo the real count back;
+    // otherwise show honest evergreen copy (never a fabricated number).
+    var lastCount = load("align.lastCount", null);
+    var text = (typeof lastCount === "number" && lastCount > 0)
+      ? lastCount + " local jobs matched last time"
+      : "Fresh local jobs, updated every day";
+    $("heroPillText").textContent = text;
+    $("heroPill").hidden = false;
   }
 
   (function initOnboarding() {
@@ -167,6 +180,7 @@
 
         jobs = (payload.jobs || []).slice().reverse();
         totalInSearch = jobs.length;
+        persist("align.lastCount", totalInSearch);
         if (!jobs.length) { setState("empty"); return; }
         setState("deck");
         renderDeck();
@@ -449,8 +463,37 @@
 
   $("detailApplyBtn").addEventListener("click", function () {
     if (!detailJob) return;
-    markApplied(detailJob);
-    toast("Good luck out there 🍀");
+    var job = detailJob;
+    markApplied(job);
+    // The <a> opens the employer tab natively; confirm it with the sent moment.
+    closeSheet(detailSheet);
+    setTimeout(function () { showApplicationSent(job); }, 180);
+  });
+
+  // ---- Application-sent moment ----
+  var sentOverlay = $("sentOverlay");
+  var sentJob = null;
+  function showApplicationSent(job) {
+    sentJob = job;
+    $("sentCompany").textContent = job.company || "the employer";
+    sentOverlay.hidden = false;
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(sentOverlay.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      gsap.fromTo(".sent-card", { y: 24, scale: 0.94, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.45, ease: "back.out(1.6)" });
+      gsap.fromTo(".sent-art svg", { rotation: -8, y: 6 }, { rotation: 6, y: 0, duration: 0.7, ease: "sine.inOut" });
+    }
+  }
+  function hideApplicationSent() {
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.to(".sent-card", { y: 24, opacity: 0, duration: 0.25, ease: "power2.in",
+        onComplete: function () { sentOverlay.hidden = true; gsap.set(".sent-card", { clearProps: "all" }); } });
+    } else sentOverlay.hidden = true;
+  }
+  $("sentKeep").addEventListener("click", hideApplicationSent);
+  $("sentApplications").addEventListener("click", function () {
+    hideApplicationSent();
+    profileTab = "applied";
+    setTimeout(openProfile, 260);
   });
 
   // =======================================================================
@@ -498,11 +541,23 @@
     $("tabApplied").setAttribute("aria-selected", profileTab === "applied");
 
     if (!items.length) {
+      var savedArt =
+        '<div class="empty-art saved-art" aria-hidden="true">' +
+        '<span class="ea-card ea-back"></span><span class="ea-card ea-front"></span>' +
+        '<span class="ea-heart"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 21l-1.4-1.3C5.4 15 2 11.9 2 8.1 2 5.4 4.1 3.3 6.8 3.3c1.5 0 3 .7 3.9 1.9l1.3 1.6 1.3-1.6c.9-1.2 2.4-1.9 3.9-1.9 2.7 0 4.8 2.1 4.8 4.8 0 3.8-3.4 6.9-8.6 11.6L12 21z"/></svg></span>' +
+        "</div>";
+      var appliedArt =
+        '<div class="empty-art applied-art" aria-hidden="true">' +
+        '<svg viewBox="0 0 64 56" width="96" height="84" fill="none">' +
+        '<circle cx="30" cy="30" r="24" fill="var(--accent-tint)"/>' +
+        '<path d="M50 14 24 30M50 14l-7 26-7-11-12-4 26-11z" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>' +
+        '<path d="M8 22c6-1 11-3 15-8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 6"/>' +
+        "</svg></div>";
       list.innerHTML =
         '<div class="profile-empty">' +
         (profileTab === "saved"
-          ? "Nothing shortlisted yet.<br/>Swipe right on a job you like — it'll wait for you here."
-          : "No applications yet.<br/>When you tap Apply on a job, we'll keep track of it here.") +
+          ? savedArt + "Nothing shortlisted yet.<br/>Swipe right on a job you like — it'll wait for you here."
+          : appliedArt + "No applications yet.<br/>When you tap Apply on a job, we'll keep track of it here.") +
         "</div>";
       return;
     }
@@ -639,10 +694,11 @@
     }
   });
 
-  $("backBtn").addEventListener("click", function () { showView("home"); });
-  $("emptyBack").addEventListener("click", function () { showView("home"); });
+  function goHome() { showView("home"); showHeroPill(); }
+  $("backBtn").addEventListener("click", goHome);
+  $("emptyBack").addEventListener("click", goHome);
   $("errorRetry").addEventListener("click", runSearch);
-  $("doneRestart").addEventListener("click", function () { showView("home"); });
+  $("doneRestart").addEventListener("click", goHome);
 
   // =======================================================================
   //  Toast

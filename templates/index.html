@@ -22,14 +22,18 @@
         <!-- Slide 1 -->
         <div class="ob-slide">
           <div class="ob-art" aria-hidden="true">
-            <div class="art-chaos">
-              <div class="chaos-line" style="width:82%"></div>
-              <div class="chaos-line" style="width:64%"></div>
-              <div class="chaos-line" style="width:74%"></div>
-              <div class="chaos-line dim" style="width:58%"></div>
-              <div class="chaos-line dim" style="width:70%"></div>
-              <div class="chaos-line dim" style="width:46%"></div>
-              <div class="chaos-fade"></div>
+            <div class="art-pile">
+              <div class="mini-card pile-2"></div>
+              <div class="mini-card pile-1"></div>
+              <div class="art-chaos">
+                <div class="chaos-line" style="width:82%"></div>
+                <div class="chaos-line" style="width:64%"></div>
+                <div class="chaos-line" style="width:74%"></div>
+                <div class="chaos-line dim" style="width:58%"></div>
+                <div class="chaos-line dim" style="width:70%"></div>
+                <div class="chaos-fade"></div>
+              </div>
+              <div class="pile-badge">1,248</div>
             </div>
           </div>
           <h1 class="ob-title">Stop scrolling through endless job boards.</h1>
@@ -39,10 +43,14 @@
         <!-- Slide 2 -->
         <div class="ob-slide">
           <div class="ob-art" aria-hidden="true">
-            <div class="art-stack">
-              <div class="mini-card back-2"></div>
-              <div class="mini-card back-1"></div>
-              <div class="mini-card front">
+            <div class="art-swipe">
+              <div class="swipe-cue pass">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </div>
+              <div class="swipe-cue like">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
+              </div>
+              <div class="mini-card swipe-card">
                 <div class="mc-logo"></div>
                 <div class="mc-line w60"></div>
                 <div class="mc-line w40 dim"></div>
@@ -51,7 +59,7 @@
             </div>
           </div>
           <h1 class="ob-title">Swipe through real jobs in seconds.</h1>
-          <p class="ob-sub">One job at a time, near you, always live. Perfect for students and part-time work.</p>
+          <p class="ob-sub">Right to shortlist, left to pass. One job at a time, always live.</p>
         </div>
 
         <!-- Slide 3 -->
@@ -92,7 +100,14 @@
 
     <!-- ================= HOME ================= -->
     <main id="homeView" class="view" hidden>
+      <div class="hero-blobs" aria-hidden="true">
+        <span class="blob blob-a"></span>
+        <span class="blob blob-b"></span>
+      </div>
       <section class="hero">
+        <span class="hero-pill" id="heroPill" hidden>
+          <span class="pill-dot"></span><span id="heroPillText">New jobs waiting near you</span>
+        </span>
         <p class="hero-eyebrow" id="greeting">Good morning</p>
         <h1 class="hero-title">Let's find your<br />next job.</h1>
       </section>
@@ -161,6 +176,14 @@
 
       <!-- Skeleton loading -->
       <div id="loadingState" class="skeleton-wrap" hidden aria-label="Finding fresh opportunities">
+        <div class="radar" aria-hidden="true">
+          <span class="radar-ring r1"></span>
+          <span class="radar-ring r2"></span>
+          <span class="radar-core">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <span class="radar-ping"></span>
+        </div>
         <div class="skeleton-card">
           <div class="sk-row">
             <div class="sk-logo shimmer"></div>
@@ -182,7 +205,12 @@
 
       <!-- Error -->
       <div id="errorState" class="state" hidden>
-        <div class="state-art neutral"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg></div>
+        <div class="state-art xl danger">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M26 26 14 38a7 7 0 0 0 10 10l12-12"/><path d="M38 38 50 26a7 7 0 0 0-10-10L28 28"/>
+            <path d="M20 20l-6-6M44 44l6 6M12 30H4M60 34h-8" opacity=".55"/>
+          </svg>
+        </div>
         <h2>That didn't work</h2>
         <p id="errorMessage" class="state-msg"></p>
         <button class="btn-secondary" id="errorRetry">Try again</button>
@@ -310,6 +338,25 @@
           <button class="paywall-later" id="paywallLater">Not right now</button>
           <p class="fine-print center">Payments handled securely by {{ payment_provider_label or 'GoCardless' }}. We never see your card details.</p>
         </div>
+      </div>
+    </div>
+
+    <!-- ================= APPLICATION SENT ================= -->
+    <div id="sentOverlay" class="sheet" hidden>
+      <div class="sheet-backdrop"></div>
+      <div class="sent-card" role="dialog" aria-modal="true" aria-label="Application on its way">
+        <div class="sent-art" aria-hidden="true">
+          <svg viewBox="0 0 80 80" width="118" height="108" fill="none">
+            <circle cx="40" cy="42" r="30" fill="var(--accent-tint)"/>
+            <path d="M62 20 30 40M62 20l-9 34-9-14-16-6 34-14z" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M12 30c8-1 15-4 20-11" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M14 52l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="var(--gold)"/>
+          </svg>
+        </div>
+        <h2 class="sent-title">Application on its way</h2>
+        <p class="sent-copy">We've opened <span id="sentCompany">the employer</span>'s site in a new tab. Finish there and you're done — good luck! 🍀</p>
+        <button class="btn-primary btn-cta" id="sentKeep">Keep swiping</button>
+        <button class="paywall-later" id="sentApplications">View my applications</button>
       </div>
     </div>
 

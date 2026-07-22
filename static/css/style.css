@@ -230,6 +230,41 @@ button { font: inherit; color: inherit; }
   70%, 100% { transform: scale(1.35); opacity: 0; }
 }
 
+/* Slide 1: overwhelmed job-board pile with a red overload badge */
+.art-pile { position: relative; width: 210px; height: 200px; }
+.art-pile .pile-2 { position: absolute; inset: auto 0 0 0; height: 150px; transform: rotate(3deg) translateY(10px); opacity: .5; }
+.art-pile .pile-1 { position: absolute; inset: auto 0 0 0; height: 150px; transform: rotate(-2deg); opacity: .75; }
+.art-pile .art-chaos { position: absolute; inset: 0; transform: none; }
+.pile-badge {
+  position: absolute; top: -14px; right: -10px;
+  background: var(--danger); color: #fff;
+  font-weight: 800; font-size: 15px;
+  padding: 8px 13px; border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(226,65,59,.4);
+  animation: badge-pop 2.4s ease-in-out infinite;
+}
+@keyframes badge-pop { 0%,88%,100% { transform: scale(1); } 94% { transform: scale(1.12); } }
+
+/* Slide 2: swipe card flanked by pass/like cues */
+.art-swipe { position: relative; width: 220px; height: 200px; display: grid; place-items: center; }
+.swipe-cue {
+  position: absolute; top: 70px;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+}
+.swipe-cue.pass { left: -6px; background: var(--danger-tint); color: var(--danger); animation: nudge-l 2.6s ease-in-out infinite; }
+.swipe-cue.like { right: -6px; background: var(--accent-tint); color: var(--accent); animation: nudge-r 2.6s ease-in-out infinite; }
+.swipe-card {
+  position: relative; width: 150px; height: 186px;
+  transform: rotate(5deg);
+  display: flex; flex-direction: column; gap: 11px; padding: 20px;
+  animation: card-tilt 2.6s ease-in-out infinite;
+}
+.swipe-card .mc-pill { margin-top: auto; }
+@keyframes card-tilt { 0%,100% { transform: rotate(5deg); } 50% { transform: rotate(-2deg); } }
+@keyframes nudge-l { 0%,100% { transform: translateX(0); opacity: .6; } 50% { transform: translateX(-4px); opacity: 1; } }
+@keyframes nudge-r { 0%,100% { transform: translateX(0); opacity: .6; } 50% { transform: translateX(4px); opacity: 1; } }
+
 /* =========================================================================
    Top bar
    ========================================================================= */
@@ -269,7 +304,26 @@ button { font: inherit; color: inherit; }
    ========================================================================= */
 .view { flex: 1; display: flex; flex-direction: column; }
 
+.hero-blobs { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+.hero-blobs .blob { position: absolute; border-radius: 50%; filter: blur(3px); }
+.hero-blobs .blob-a { top: 44px; right: -34px; width: 150px; height: 150px; background: var(--accent-tint); opacity: .7; }
+.hero-blobs .blob-b { top: 96px; right: 40px; width: 82px; height: 82px; background: var(--gold-tint); opacity: .8; }
+#homeView { position: relative; }
+#homeView .hero, #homeView .setup { position: relative; z-index: 1; }
+
 .hero { padding: 26px 2px 26px; }
+.hero-pill {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  box-shadow: var(--shadow-pill);
+  padding: 6px 12px 6px 11px;
+  border-radius: 999px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--ink-2);
+  margin-bottom: 14px;
+}
+.hero-pill .pill-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
 .hero-eyebrow {
   font-size: 15px; font-weight: 600;
   color: var(--ink-3);
@@ -436,7 +490,59 @@ button { font: inherit; color: inherit; }
 }
 .state-art.neutral { background: var(--surface-2); color: var(--ink-2); }
 .state-art.xl { width: 92px; height: 92px; border-radius: 28px; }
+.state-art.danger { background: var(--danger-tint); color: var(--danger); }
 .paywall-art { display: block; margin: 8px auto 4px; }
+
+/* Radar scanner for the loading state */
+.radar { position: relative; width: 96px; height: 96px; margin: 4px auto 22px; display: grid; place-items: center; }
+.radar-ring { position: absolute; border-radius: 50%; border: 2px solid var(--accent); opacity: 0; }
+.radar-ring.r1 { width: 96px; height: 96px; animation: radar 2s ease-out infinite; }
+.radar-ring.r2 { width: 96px; height: 96px; animation: radar 2s ease-out infinite 1s; }
+.radar-core {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 10px 26px rgba(255,95,0,.3);
+}
+.radar-ping { position: absolute; top: 6px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--gold); }
+@keyframes radar { 0% { transform: scale(.55); opacity: .6; } 100% { transform: scale(1); opacity: 0; } }
+
+/* Profile empty-state illustrations */
+.empty-art { display: grid; place-items: center; margin-bottom: 16px; }
+.saved-art { position: relative; width: 120px; height: 96px; }
+.saved-art .ea-card {
+  position: absolute; top: 8px; width: 74px; height: 74px;
+  border-radius: 16px; background: var(--surface);
+  box-shadow: var(--shadow-card);
+}
+.saved-art .ea-back { left: 14px; transform: rotate(-8deg); }
+.saved-art .ea-front { right: 14px; transform: rotate(8deg); }
+.saved-art .ea-heart {
+  position: absolute; left: 50%; top: 26px; transform: translateX(-50%);
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: grid; place-items: center;
+  box-shadow: 0 8px 20px rgba(255,95,0,.32);
+}
+.applied-art { width: 96px; height: 84px; }
+
+/* Application-sent moment */
+#sentOverlay { z-index: 220; }
+.sent-card {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 48px); max-width: 340px;
+  background: var(--surface);
+  border-radius: 28px;
+  box-shadow: var(--shadow-float);
+  padding: 34px 28px 26px;
+  text-align: center;
+}
+.sent-art { display: grid; place-items: center; }
+.sent-title { font-size: 23px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; }
+.sent-copy { color: var(--ink-2); font-size: 15px; line-height: 1.55; margin: 8px auto 0; max-width: 30ch; }
+.sent-card .btn-cta { margin-top: 20px; }
+.sent-card .paywall-later { margin-top: 6px; }
 .state h2 { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; }
 .state-msg { color: var(--ink-2); font-size: 15px; line-height: 1.55; max-width: 30ch; }
 .done-actions { display: flex; gap: 10px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
