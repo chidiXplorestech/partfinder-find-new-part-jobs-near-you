@@ -1,5 +1,5 @@
 /* =========================================================================
-   PartFinder — swipe deck controller
+   Align — swipe deck controller
    Vanilla JS + GSAP + Draggable. Talks to the Flask /api/search endpoint.
    ========================================================================= */
 (function () {
@@ -68,6 +68,13 @@
         body: JSON.stringify(query),
       });
       const payload = await res.json();
+
+      // Paywall: server asks the user to pay before revealing matches.
+      if (res.status === 402 && payload.needs_payment) {
+        showView("home");
+        openPaywall();
+        return;
+      }
 
       if (!res.ok || !payload.ok) {
         showError(payload.error || "We couldn't load jobs right now.");
@@ -406,6 +413,71 @@
       gsap.fromTo(btn, { scale: 0.8 }, { scale: 1, duration: 0.4, ease: "back.out(2)" });
     }
   }
+
+  // =======================================================================
+  //  Paywall (£1 unlock via Stripe Checkout)
+  // =======================================================================
+  const CONFIG = window.ALIGN_CONFIG || { paywallActive: false, price: "£1.00", isPaid: false };
+  const paywallOverlay = $("paywallOverlay");
+  const paywallPayBtn = $("paywallPayBtn");
+
+  function openPaywall() {
+    $("paywallPrice").textContent = CONFIG.price || "£1.00";
+    $("paywallBtnLabel").textContent = "Unlock for " + (CONFIG.price || "£1.00");
+    paywallOverlay.hidden = false;
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(
+        paywallOverlay.querySelector(".paywall-card"),
+        { y: 30, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.4, ease: "power3.out" }
+      );
+    }
+  }
+
+  function closePaywall() {
+    paywallOverlay.hidden = true;
+  }
+
+  async function startCheckout() {
+    paywallPayBtn.disabled = true;
+    $("paywallBtnLabel").textContent = "Redirecting…";
+    try {
+      const res = await fetch("/api/checkout", { method: "POST" });
+      const payload = await res.json();
+      if (payload.unlocked) {
+        // Paywall disabled server-side — just proceed.
+        closePaywall();
+        runSearch();
+        return;
+      }
+      if (payload.ok && payload.checkout_url) {
+        window.location.href = payload.checkout_url; // hand off to Stripe
+        return;
+      }
+      throw new Error(payload.error || "Checkout unavailable.");
+    } catch (err) {
+      $("paywallBtnLabel").textContent = "Unlock for " + (CONFIG.price || "£1.00");
+      paywallPayBtn.disabled = false;
+      alert("Sorry — couldn't start checkout. " + (err.message || ""));
+    }
+  }
+
+  paywallPayBtn.addEventListener("click", startCheckout);
+  $("paywallLater").addEventListener("click", closePaywall);
+
+  // Handle the return trip from Stripe.
+  (function handlePaymentReturn() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("paid") === "1") {
+      // Access unlocked server-side; clean the URL.
+      history.replaceState({}, "", window.location.pathname);
+    } else if (params.get("pay") === "failed") {
+      history.replaceState({}, "", window.location.pathname);
+      alert("Payment didn't complete. You can try again anytime.");
+    } else if (params.get("pay") === "cancelled") {
+      history.replaceState({}, "", window.location.pathname);
+    }
+  })();
 
   // =======================================================================
   //  Control bar + keyboard + drawer wiring

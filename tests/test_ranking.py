@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from partfinder import config
-from partfinder.models import Job, SearchQuery
-from partfinder.ranking import rank_jobs, score_job
+from align import config
+from align.models import Job, SearchQuery
+from align.ranking import rank_jobs, score_job
 
 
 def make_job(**overrides) -> Job:
@@ -26,7 +26,7 @@ def make_job(**overrides) -> Job:
     base.update(overrides)
     job = Job(**base)
     # Emulate the filter step caching distance.
-    from partfinder.filters import compute_distance
+    from align.filters import compute_distance
 
     job.distance_miles = compute_distance(job)
     return job

@@ -4,7 +4,7 @@ The orchestrator implements *graceful tiering*. Stacking every hard filter on
 top of a strict Adzuna query routinely yields an empty deck, which reads as a
 broken app. Instead we start strict and progressively relax when results are
 thin, telling the user exactly what we widened. Distance never silently drops
-jobs (see :mod:`partfinder.filters`).
+jobs (see :mod:`align.filters`).
 """
 
 from __future__ import annotations
