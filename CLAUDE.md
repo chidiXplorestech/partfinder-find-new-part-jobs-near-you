@@ -87,6 +87,22 @@ Three swipeable slides, then the app:
   Secrets: `ADZUNA_APP_ID`, `ADZUNA_APP_KEY`, `SECRET_KEY` (+ paywall vars).
   `.env` is git-ignored — never commit real keys.
 
+## Improvements to make (requested)
+
+- **Postcode input** — replace the hardcoded NG7 1NZ origin with a per-user
+  location/postcode field so it works anywhere (needed to scale).
+- **Quick account setup** — email + password on one page, with **email
+  validity check** and **strong-password** enforcement.
+- **Consistent navigation** — clear **home / back / X** controls on every
+  screen and sheet (no dead ends).
+- **Paywall after onboarding** — surface the £1 unlock right after onboarding,
+  not only at first search.
+- **Real imagery** — photographic **Magnific**-generated art for onboarding
+  (and wherever it lifts the UI), in the Tinder-rebrand vibe.
+- **Look more like the Tinder rebrand** — bolder, more expressive, editorial
+  (currently reads too "clean fintech").
+- **Fixed:** "View job" doubled-card bug + missing close/back on job detail.
+
 ## Conventions for future work
 
 - Keep it **honest** (no fake data/counts) and **lightweight** (few taps).
