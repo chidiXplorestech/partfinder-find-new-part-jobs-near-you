@@ -2,41 +2,120 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <meta name="theme-color" content="#0E1116" />
-  <title>Align — swipe your next part-time job</title>
-  <meta name="description" content="Align is the Tinder for part-time jobs near the University of Nottingham. Swipe. Match. Apply." />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#F6F5F2" />
+  <title>Align — stop searching, start swiping</title>
+  <meta name="description" content="Align finds real local jobs and lets you swipe through them one at a time. Stop searching. Start swiping. Find your next job faster." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>
-  <div class="app-shell">
+  <div class="app" id="app">
 
-    <!-- ============ TOP BAR ============ -->
-    <header class="topbar">
-      <div class="brand">
-        <span class="brand-flame">Align</span><span class="brand-dot">.</span>
+    <!-- ================= ONBOARDING ================= -->
+    <section id="onboarding" class="onboarding" hidden aria-label="Welcome to Align">
+      <button class="ob-skip" id="obSkip">Skip</button>
+
+      <div class="ob-track" id="obTrack">
+        <!-- Slide 1 -->
+        <div class="ob-slide">
+          <div class="ob-art" aria-hidden="true">
+            <div class="art-pile">
+              <div class="mini-card pile-2"></div>
+              <div class="mini-card pile-1"></div>
+              <div class="art-chaos">
+                <div class="chaos-line" style="width:82%"></div>
+                <div class="chaos-line" style="width:64%"></div>
+                <div class="chaos-line" style="width:74%"></div>
+                <div class="chaos-line dim" style="width:58%"></div>
+                <div class="chaos-line dim" style="width:70%"></div>
+                <div class="chaos-fade"></div>
+              </div>
+              <div class="pile-badge">1,248</div>
+            </div>
+          </div>
+          <h1 class="ob-title">Stop scrolling through endless job boards.</h1>
+          <p class="ob-sub">Thousands of listings. Endless filters. Nobody has time for that.</p>
+        </div>
+
+        <!-- Slide 2 -->
+        <div class="ob-slide">
+          <div class="ob-art" aria-hidden="true">
+            <div class="art-swipe">
+              <div class="swipe-cue pass">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              </div>
+              <div class="swipe-cue like">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
+              </div>
+              <div class="mini-card swipe-card">
+                <div class="mc-logo"></div>
+                <div class="mc-line w60"></div>
+                <div class="mc-line w40 dim"></div>
+                <div class="mc-pill"></div>
+              </div>
+            </div>
+          </div>
+          <h1 class="ob-title">Swipe through real jobs in seconds.</h1>
+          <p class="ob-sub">Right to shortlist, left to pass. One job at a time, always live.</p>
+        </div>
+
+        <!-- Slide 3 -->
+        <div class="ob-slide">
+          <div class="ob-art" aria-hidden="true">
+            <div class="art-apply">
+              <div class="mini-card solo">
+                <div class="mc-logo"></div>
+                <div class="mc-line w60"></div>
+                <div class="mc-line w40 dim"></div>
+                <div class="mc-apply"></div>
+              </div>
+              <svg class="plane" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+              <svg class="plane-trail" viewBox="0 0 60 40" width="60" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 38c14-2 26-8 34-18" stroke-dasharray="1 8"/></svg>
+            </div>
+          </div>
+          <h1 class="ob-title">See one you like? One tap to apply.</h1>
+          <p class="ob-sub">We send you straight to the employer — no middlemen, no extra steps.</p>
+        </div>
       </div>
-      <button id="matchesBtn" class="icon-btn" aria-label="View your matches" title="Your matches">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 1 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"/></svg>
-        <span id="matchesCount" class="matches-count" hidden>0</span>
+
+      <div class="ob-footer">
+        <div class="ob-dots" id="obDots" aria-hidden="true">
+          <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+        </div>
+        <button class="btn-primary" id="obNext">Continue</button>
+      </div>
+    </section>
+
+    <!-- ================= TOP BAR ================= -->
+    <header class="topbar" id="topbar" hidden>
+      <div class="wordmark" aria-label="Align">Align<span class="wordmark-dot">.</span></div>
+      <button id="profileBtn" class="icon-btn" aria-label="Saved jobs and profile">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
+        <span id="savedCount" class="saved-count" hidden>0</span>
       </button>
     </header>
 
-    <!-- ============ VIEW: HOME / FILTERS ============ -->
-    <main id="homeView" class="view">
+    <!-- ================= HOME ================= -->
+    <main id="homeView" class="view" hidden>
+      <div class="hero-blobs" aria-hidden="true">
+        <span class="blob blob-a"></span>
+        <span class="blob blob-b"></span>
+      </div>
       <section class="hero">
-        <h1 class="hero-title">Find your<br /><span class="grad-text">perfect shift.</span></h1>
-        <p class="hero-sub">Swipe real, local part-time jobs near the University of Nottingham. Match with the ones that fit — apply in one tap.</p>
+        <span class="hero-pill" id="heroPill" hidden>
+          <span class="pill-dot"></span><span id="heroPillText">New jobs waiting near you</span>
+        </span>
+        <p class="hero-eyebrow" id="greeting">Good morning</p>
+        <h1 class="hero-title">Let's find your<br />next job.</h1>
       </section>
 
-      <form id="searchForm" class="filters" autocomplete="off">
-        <!-- Category -->
+      <form id="searchForm" class="setup" autocomplete="off">
         <fieldset class="field">
-          <legend class="field-label">What are you into?</legend>
-          <div class="chips" role="radiogroup" id="categoryChips">
+          <legend class="field-label">What kind of work?</legend>
+          <div class="chips" role="radiogroup">
             {% for cat in categories %}
             <label class="chip">
               <input type="radio" name="category" value="{{ cat.key }}" {% if loop.first %}checked{% endif %} />
@@ -46,10 +125,9 @@
           </div>
         </fieldset>
 
-        <!-- Days -->
         <fieldset class="field">
-          <legend class="field-label">When are you free?</legend>
-          <div class="chips" id="dayChips">
+          <legend class="field-label">When can you work?</legend>
+          <div class="chips chips-days">
             {% for day in days %}
             <label class="chip chip-day">
               <input type="checkbox" name="days" value="{{ day }}" {% if day in ['Saturday','Sunday'] %}checked{% endif %} />
@@ -59,10 +137,9 @@
           </div>
         </fieldset>
 
-        <!-- Radius -->
         <fieldset class="field">
-          <legend class="field-label">How far will you go?</legend>
-          <div class="chips" role="radiogroup" id="radiusChips">
+          <legend class="field-label">How far will you travel?</legend>
+          <div class="chips" role="radiogroup">
             {% for r in radii %}
             <label class="chip">
               <input type="radio" name="radius" value="{{ r }}" {% if r == 5 %}checked{% endif %} />
@@ -72,123 +149,219 @@
           </div>
         </fieldset>
 
-        <p class="pay-note">Only roles paying <strong>£{{ '%.2f'|format(min_pay) }}/hr</strong> or more · posted in the last 14 days · around NG7&nbsp;1NZ.</p>
+        <p class="fine-print">Real jobs, updated daily · £{{ '%.2f'|format(min_pay) }}/hr minimum · around NG7 1NZ</p>
 
         {% if not adzuna_configured %}
-        <p class="config-warn">⚠️ Adzuna API keys are missing. Add them to <code>.env</code> and restart to see live jobs.</p>
+        <p class="config-warn">Job data isn't connected yet — add your Adzuna keys to <code>.env</code> and restart.</p>
         {% endif %}
 
-        <button type="submit" class="btn-primary" id="findBtn">
-          <span>Find my matches</span>
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
-        </button>
+        <button type="submit" class="btn-primary btn-cta" id="findBtn">Start swiping</button>
       </form>
     </main>
 
-    <!-- ============ VIEW: DECK / RESULTS ============ -->
+    <!-- ================= DECK ================= -->
     <section id="deckView" class="view" hidden>
       <div class="deck-head">
-        <button id="backBtn" class="icon-btn" aria-label="Back to filters">
-          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+        <button id="backBtn" class="icon-btn" aria-label="Back to search">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
-        <div id="deckTitle" class="deck-title">Your matches</div>
-        <div class="icon-btn ghost"></div>
+        <div class="deck-title-wrap">
+          <div id="deckTitle" class="deck-title">Nearby jobs</div>
+          <div id="deckCount" class="deck-count"></div>
+        </div>
+        <div class="icon-btn ghost" aria-hidden="true"></div>
       </div>
 
       <div id="deckNotice" class="deck-notice" hidden></div>
 
-      <!-- Loading -->
-      <div id="loadingState" class="state" hidden>
-        <div class="spinner" role="status" aria-label="Loading"></div>
-        <p>Finding jobs that match you…</p>
+      <!-- Skeleton loading -->
+      <div id="loadingState" class="skeleton-wrap" hidden aria-label="Finding fresh opportunities">
+        <div class="radar" aria-hidden="true">
+          <span class="radar-ring r1"></span>
+          <span class="radar-ring r2"></span>
+          <span class="radar-core">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          </span>
+          <span class="radar-ping"></span>
+        </div>
+        <div class="skeleton-card">
+          <div class="sk-row">
+            <div class="sk-logo shimmer"></div>
+            <div class="sk-col">
+              <div class="sk-line w50 shimmer"></div>
+              <div class="sk-line w30 shimmer"></div>
+            </div>
+          </div>
+          <div class="sk-title shimmer"></div>
+          <div class="sk-title w60 shimmer"></div>
+          <div class="sk-pills">
+            <div class="sk-pill shimmer"></div><div class="sk-pill shimmer"></div><div class="sk-pill shimmer"></div>
+          </div>
+          <div class="sk-line w90 shimmer"></div>
+          <div class="sk-line w70 shimmer"></div>
+        </div>
+        <p class="skeleton-caption">Finding fresh opportunities near you…</p>
       </div>
 
       <!-- Error -->
       <div id="errorState" class="state" hidden>
-        <div class="state-emoji">😵‍💫</div>
-        <h2>Something went sideways</h2>
+        <div class="state-art xl danger">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M26 26 14 38a7 7 0 0 0 10 10l12-12"/><path d="M38 38 50 26a7 7 0 0 0-10-10L28 28"/>
+            <path d="M20 20l-6-6M44 44l6 6M12 30H4M60 34h-8" opacity=".55"/>
+          </svg>
+        </div>
+        <h2>That didn't work</h2>
         <p id="errorMessage" class="state-msg"></p>
         <button class="btn-secondary" id="errorRetry">Try again</button>
       </div>
 
-      <!-- No matches -->
+      <!-- Empty -->
       <div id="emptyState" class="state" hidden>
-        <div class="state-emoji">🔍</div>
-        <h2>No matches right now</h2>
-        <p class="state-msg">Nothing local fit your filters today. Try a different category or a wider radius.</p>
-        <button class="btn-secondary" id="emptyBack">Adjust filters</button>
+        <div class="state-art xl">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
+            <circle cx="27" cy="27" r="15" stroke="currentColor" stroke-width="3"/>
+            <path d="m38.5 38.5 12 12" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+            <path d="M50 8l1.6 4.4L56 14l-4.4 1.6L50 20l-1.6-4.4L44 14l4.4-1.6L50 8z" fill="#F79E1B"/>
+            <path d="M22 27a5 5 0 0 1 5-5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity=".5"/>
+          </svg>
+        </div>
+        <h2>We're still looking</h2>
+        <p class="state-msg">New jobs arrive every day. Try a wider radius or a different kind of work.</p>
+        <button class="btn-secondary" id="emptyBack">Adjust search</button>
       </div>
 
-      <!-- All caught up -->
+      <!-- Caught up -->
       <div id="doneState" class="state" hidden>
-        <div class="state-emoji">🎉</div>
-        <h2>You're all caught up</h2>
-        <p class="state-msg">You've seen every match. Saved <span id="doneSavedCount">0</span> — check them in your matches.</p>
+        <div class="state-art xl">
+          <svg viewBox="0 0 64 64" width="44" height="44" fill="none" aria-hidden="true">
+            <circle cx="32" cy="34" r="17" stroke="currentColor" stroke-width="3"/>
+            <path d="m24.5 34.5 5.5 5.5 10-11" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="10" cy="18" r="2.6" fill="#F79E1B"/>
+            <circle cx="54" cy="14" r="2.2" fill="currentColor"/>
+            <circle cx="57" cy="42" r="2.6" fill="#F79E1B"/>
+            <circle cx="14" cy="50" r="2" fill="currentColor" opacity=".55"/>
+            <path d="M30 6l1.2 3.2L34.5 10l-3.3 1.2L30 14.5l-1.2-3.3L25.5 10l3.3-.8L30 6z" fill="#F79E1B"/>
+          </svg>
+        </div>
+        <h2>That's everything for now</h2>
+        <p class="state-msg">You've seen every job that fits. New ones land daily — <span id="doneSavedLine">come back tomorrow.</span></p>
         <div class="done-actions">
-          <button class="btn-secondary" id="doneMatches">View matches</button>
+          <button class="btn-secondary" id="doneMatches">Saved jobs</button>
           <button class="btn-primary compact" id="doneRestart">New search</button>
         </div>
       </div>
 
-      <!-- Card deck -->
       <div id="cardDeck" class="card-deck" hidden></div>
 
-      <!-- Control bar -->
       <div id="controlBar" class="control-bar" hidden>
-        <button class="ctrl ctrl-pass" id="passBtn" aria-label="Pass">
-          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        <button class="ctrl ctrl-pass" id="passBtn" aria-label="Pass on this job">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
-        <button class="ctrl ctrl-save" id="saveBtn" aria-label="Save">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+        <button class="ctrl ctrl-view" id="viewBtn" aria-label="View job details">
+          <span>View job</span>
         </button>
-        <button class="ctrl ctrl-apply" id="applyBtn" aria-label="Apply">
-          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+        <button class="ctrl ctrl-save" id="saveBtn" aria-label="Shortlist this job">
+          <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
         </button>
       </div>
+      <p class="deck-hint" id="deckHint" hidden>Swipe right to shortlist · left to pass · tap for details</p>
     </section>
 
-    <!-- ============ MATCHES DRAWER ============ -->
-    <div id="matchesDrawer" class="drawer" hidden>
-      <div class="drawer-backdrop" data-close-drawer></div>
-      <div class="drawer-panel" role="dialog" aria-label="Your matches">
-        <div class="drawer-head">
-          <h2>Your matches</h2>
-          <button class="icon-btn" data-close-drawer aria-label="Close">
-            <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    <!-- ================= JOB DETAIL SHEET ================= -->
+    <div id="detailSheet" class="sheet" hidden>
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Job details">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="sheet-scroll" id="detailBody"><!-- filled by JS --></div>
+        <div class="sheet-actions">
+          <button class="ctrl ctrl-save lg" id="detailSaveBtn" aria-label="Shortlist this job">
+            <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
           </button>
+          <a class="btn-primary sheet-apply" id="detailApplyBtn" href="#" target="_blank" rel="noopener">
+            Apply on employer site
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M9 7h8v8"/></svg>
+          </a>
         </div>
-        <div id="matchesList" class="matches-list"></div>
+        <p class="sheet-footnote">You'll finish applying on the employer's own site — that's where your CV goes.</p>
       </div>
     </div>
 
-    <!-- ============ PAYWALL OVERLAY ============ -->
-    <div id="paywallOverlay" class="paywall-overlay" hidden>
-      <div class="paywall-card">
-        <div class="paywall-flame">🔥</div>
-        <h2 class="paywall-title">Unlock <span class="grad-text">Align</span></h2>
-        <p class="paywall-price"><span id="paywallPrice">£1.00</span> <span class="paywall-once">one-time</span></p>
-        <ul class="paywall-perks">
-          <li>Unlimited swiping through live local jobs</li>
-          <li>Real one-tap Apply links</li>
-          <li>Your saved matches, kept together</li>
-        </ul>
-        <button class="btn-primary" id="paywallPayBtn">
-          <span id="paywallBtnLabel">Unlock for £1</span>
-        </button>
-        <button class="paywall-later" id="paywallLater">Maybe later</button>
-        <p class="paywall-secure">🔒 Secure payment by Stripe · we never see your card</p>
+    <!-- ================= PROFILE / SAVED SHEET ================= -->
+    <div id="profileSheet" class="sheet" hidden>
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Your jobs">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="profile-tabs" role="tablist">
+          <button class="ptab active" id="tabSaved" role="tab" aria-selected="true">Saved</button>
+          <button class="ptab" id="tabApplied" role="tab" aria-selected="false">Applied</button>
+        </div>
+        <div class="sheet-scroll">
+          <div id="profileList" class="profile-list"></div>
+          <div class="profile-footer">
+            <div class="sub-row">
+              <div>
+                <div class="sub-title" id="subStatus">Align access</div>
+                <div class="sub-sub">£1 one-time · covers our job-data &amp; running costs</div>
+              </div>
+              <span class="sub-badge" id="subBadge">Free preview</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- ============ IT'S A MATCH OVERLAY ============ -->
-    <div id="matchOverlay" class="match-overlay" hidden>
-      <div class="match-burst"></div>
-      <div class="match-content">
-        <div class="match-title grad-text">It's a match!</div>
-        <p id="matchLine" class="match-line"></p>
-        <div class="match-spark">🔥</div>
+    <!-- ================= PAYWALL ================= -->
+    <div id="paywallOverlay" class="sheet" hidden>
+      <div class="sheet-backdrop"></div>
+      <div class="sheet-panel paywall-panel" role="dialog" aria-modal="true" aria-label="Unlock Align">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="paywall-body">
+          <div class="paywall-mark">Align<span class="wordmark-dot">.</span></div>
+          <svg class="paywall-art" viewBox="0 0 64 64" width="74" height="74" fill="none" aria-hidden="true">
+            <path d="M26 5c-1.6 2.6.9 4.2.9 6.6M33.5 3c-1.6 2.6.9 4.2.9 6.6" stroke="#F79E1B" stroke-width="2.4" stroke-linecap="round"/>
+            <rect x="15" y="15" width="32" height="6.5" rx="3.2" fill="#141414"/>
+            <path d="M18.5 21.5h25l-2.7 27.2a4 4 0 0 1-4 3.6H25.2a4 4 0 0 1-4-3.6l-2.7-27.2z" fill="#FFEDE0" stroke="#141414" stroke-width="2.2" stroke-linejoin="round"/>
+            <path d="M20 34.5h22l-.7 7H20.7l-.7-7z" fill="#F79E1B"/>
+          </svg>
+          <h2 class="paywall-title">Less than a coffee.</h2>
+          <p class="paywall-copy">
+            <strong id="paywallPrice">£1</strong> unlocks Align for good. It covers the live job data,
+            the servers, and nothing else — no subscriptions, no upsells, ever.
+          </p>
+          <ul class="paywall-perks">
+            <li>Unlimited swiping through live local jobs</li>
+            <li>Direct apply links to real employers</li>
+            <li>Your shortlist, kept safe</li>
+          </ul>
+          <button class="btn-primary btn-cta" id="paywallPayBtn"><span id="paywallBtnLabel">Unlock Align — £1</span></button>
+          <button class="paywall-later" id="paywallLater">Not right now</button>
+          <p class="fine-print center">Payments handled securely by {{ payment_provider_label or 'GoCardless' }}. We never see your card details.</p>
+        </div>
       </div>
     </div>
+
+    <!-- ================= APPLICATION SENT ================= -->
+    <div id="sentOverlay" class="sheet" hidden>
+      <div class="sheet-backdrop"></div>
+      <div class="sent-card" role="dialog" aria-modal="true" aria-label="Application on its way">
+        <div class="sent-art" aria-hidden="true">
+          <svg viewBox="0 0 80 80" width="118" height="108" fill="none">
+            <circle cx="40" cy="42" r="30" fill="var(--accent-tint)"/>
+            <path d="M62 20 30 40M62 20l-9 34-9-14-16-6 34-14z" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M12 30c8-1 15-4 20-11" stroke="var(--gold)" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="1 7"/>
+            <path d="M14 52l1 3 3 1-3 1-1 3-1-3-3-1 3-1 1-3z" fill="var(--gold)"/>
+          </svg>
+        </div>
+        <h2 class="sent-title">Application on its way</h2>
+        <p class="sent-copy">We've opened <span id="sentCompany">the employer</span>'s site in a new tab. Finish there and you're done — good luck! 🍀</p>
+        <button class="btn-primary btn-cta" id="sentKeep">Keep swiping</button>
+        <button class="paywall-later" id="sentApplications">View my applications</button>
+      </div>
+    </div>
+
+    <!-- ================= TOAST ================= -->
+    <div id="toast" class="toast" hidden role="status" aria-live="polite"></div>
 
   </div>
 
@@ -199,8 +372,6 @@
       isPaid: {{ is_paid | tojson }}
     };
   </script>
-
-  <!-- GSAP + Draggable (CDN) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/Draggable.min.js"></script>
   <script src="{{ url_for('static', filename='js/app.js') }}"></script>

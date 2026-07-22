@@ -125,10 +125,12 @@ Open <http://127.0.0.1:5000>.
 | `PORT`            | ➖       | `5000`      | Bind port                             |
 | `FLASK_DEBUG`     | ➖       | `0`         | `1` to enable debug/auto-reload       |
 | `PAYWALL_ENABLED` | ➖       | `0`         | `1` to require the £1 payment          |
-| `STRIPE_SECRET_KEY`| ➖ (if paywall) | — | Stripe secret key (`sk_test_…`/`sk_live_…`) |
+| `GOCARDLESS_PAYMENT_LINK` | ➖ | —      | GoCardless hosted pay link (Option A)  |
+| `PAYMENT_RETURN_TOKEN` | ➖  | —          | Secret guarding the GoCardless return  |
+| `STRIPE_SECRET_KEY`| ➖      | —           | Stripe secret key (Option B fallback)  |
 | `PRICE_PENCE`     | ➖       | `100`       | Access price in pence (100 = £1.00)   |
-| `CURRENCY`        | ➖       | `gbp`       | Stripe currency code                  |
-| `PUBLIC_BASE_URL` | ➖       | —           | Deployed URL, for Stripe return links |
+| `CURRENCY`        | ➖       | `gbp`       | Currency code                         |
+| `PUBLIC_BASE_URL` | ➖       | —           | Deployed URL, for payment return links |
 
 ---
 
@@ -146,35 +148,46 @@ weighted scoring, Match % banding, and best-first ordering.
 
 ## Paywall (£1 unlock)
 
-Align ships with an **optional** one-time paywall, powered by
-[Stripe Checkout](https://stripe.com/gb/payments/checkout) (a Stripe-hosted
-payment page — the app never sees card details, so you stay out of PCI scope).
+Align ships with an **optional** one-time paywall. It is **off by default**
+(`PAYWALL_ENABLED=0` → the app is completely free). Two payment methods are
+supported; the app picks GoCardless if a link is set, otherwise Stripe.
 
-It is **off by default**: with `PAYWALL_ENABLED=0` the app is completely free and
-`stripe` is never called. To switch it on:
+### Option A — GoCardless payment link (simplest)
 
-1. Create a free Stripe account at <https://dashboard.stripe.com>.
-2. Copy your **secret key** from <https://dashboard.stripe.com/apikeys>
-   (`sk_test_…` while testing, `sk_live_…` when you're ready for real money).
-3. Set these environment variables (locally in `.env`, or in your host's
-   dashboard):
+A [GoCardless](https://gocardless.com) hosted payment link is just a URL you
+send payers to — no API keys, no card handling on your side.
+
+1. In your GoCardless dashboard, create a payment link for £1.
+2. Set its **success redirect URL** to
+   `https://your-app-url/pay/success?token=YOUR_SECRET_TOKEN`
+   (invent any value for the token).
+3. Set these environment variables (in `.env` locally, or your host dashboard):
    ```env
    PAYWALL_ENABLED=1
-   STRIPE_SECRET_KEY=sk_test_your_key_here
-   PRICE_PENCE=100            # £1.00
-   PUBLIC_BASE_URL=https://your-app-url   # your live URL once deployed
+   GOCARDLESS_PAYMENT_LINK=https://pay.gocardless.com/XXXXXXXX
+   PAYMENT_RETURN_TOKEN=YOUR_SECRET_TOKEN
+   PUBLIC_BASE_URL=https://your-app-url
    ```
-4. Restart. Now "Find my matches" shows a £1 unlock screen; after paying, the
-   user's session is unlocked and Stripe redirects them back automatically.
+4. Restart. "Find my matches" now shows a £1 unlock screen; the CTA sends the
+   user to your GoCardless link, and GoCardless redirects them back to unlock.
 
-**How it stays secure:** the `/api/search` endpoint refuses to return matches
-until the server has confirmed a completed payment *with Stripe directly*
-(`payment_status == "paid"`), so a user can't forge the return URL to skip
-paying. Test it with Stripe's test card `4242 4242 4242 4242`, any future expiry
-and any CVC.
+**Security note:** a static payment link can't be verified from its redirect the
+way a Stripe session can, so the unlock is gated on the shared
+`PAYMENT_RETURN_TOKEN` — only a return from *your* configured GoCardless link
+carries the right token. For airtight verification, add a GoCardless webhook
+(`payments.confirmed`) that records paid customers server-side; that's the
+recommended next step for production.
 
-> 💡 Payment unlocks access for the current browser session. For permanent
-> per-user accounts you'd add a login + database — out of scope for this build.
+### Option B — Stripe Checkout (fallback)
+
+If you leave `GOCARDLESS_PAYMENT_LINK` blank but set a `STRIPE_SECRET_KEY`
+(from <https://dashboard.stripe.com/apikeys>), the app uses Stripe Checkout
+instead. Here the payment **is** verified server-side (`payment_status == "paid"`)
+so the return URL can't be forged. Test with card `4242 4242 4242 4242`, any
+future expiry and any CVC.
+
+> 💡 Either way, payment unlocks access for the current browser session. For
+> permanent per-user accounts you'd add a login + database — out of scope here.
 
 ---
 

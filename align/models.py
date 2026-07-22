@@ -109,6 +109,7 @@ class Job:
             "initials": self._initials(),
             "salary_display": self._salary_display(hourly),
             "type_display": (self.contract_time or "flexible").replace("_", "-").title(),
+            "description": self._description_snippet(),
         }
 
     # ------------------------------------------------------------------ #
@@ -137,3 +138,10 @@ class Job:
         if hourly is not None:
             return f"≈ £{hourly:.2f}/hr"
         return "Pay on application"
+
+    def _description_snippet(self, limit: int = 700) -> str:
+        """Description trimmed to a preview-friendly length, on a word break."""
+        text = " ".join(self.description.split())
+        if len(text) <= limit:
+            return text
+        return text[:limit].rsplit(" ", 1)[0] + "…"

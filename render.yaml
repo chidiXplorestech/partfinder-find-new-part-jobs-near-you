@@ -18,8 +18,12 @@ services:
         generateValue: true  # Render generates a strong random value
       - key: PAYWALL_ENABLED
         value: "0"           # set to "1" to switch the £1 paywall on
+      - key: GOCARDLESS_PAYMENT_LINK
+        sync: false          # your https://pay.gocardless.com/... link (Option A)
+      - key: PAYMENT_RETURN_TOKEN
+        sync: false          # a secret you invent, used on the GC success redirect
       - key: STRIPE_SECRET_KEY
-        sync: false          # your Stripe secret key (only needed if paywall on)
+        sync: false          # only needed for the Stripe fallback (Option B)
       - key: PRICE_PENCE
         value: "100"
       - key: CURRENCY
