@@ -1,36 +1,42 @@
 /* =========================================================================
    Align — design system
-   Light, warm, premium. One accent (emerald), generous space, soft depth.
+   Light, cool-white, premium. Persian-blue accent, royal-blue ink, creamy gold
+   highlights, imperial red reserved for Pass. Generous space, soft depth.
    Type: SF Pro on Apple devices, Inter elsewhere.
    ========================================================================= */
 
 :root {
-  /* Canvas & surfaces */
-  --bg: #F6F6F3;
-  --surface: #FFFFFF;
-  --surface-2: #EFEFEA;
+  /* Canvas & surfaces — cool white (#FDFDFF family) */
+  --bg: #F4F6FB;
+  --surface: #FDFDFF;
+  --surface-2: #E9EDF6;
 
-  /* Ink */
-  --ink: #16191D;
-  --ink-2: #565E66;
-  --ink-3: #8B929B;
+  /* Ink — royal blue (#002A62) and blue-greys */
+  --ink: #002A62;
+  --ink-2: #475980;
+  --ink-3: #7B89A8;
 
-  /* Accent — deep emerald */
-  --accent: #0B8A5C;
-  --accent-press: #086B47;
-  --accent-tint: #E6F4EE;
-  --accent-tint-2: #D2EBDF;
+  /* Accent — Persian blue (#003ECD) */
+  --accent: #003ECD;
+  --accent-press: #0032A4;
+  --accent-tint: #E8EDFC;
+  --accent-tint-2: #D4DEF9;
 
-  /* Support */
-  --danger: #D2564E;
-  --danger-tint: #FBEEED;
-  --hairline: rgba(22, 25, 29, 0.08);
-  --hairline-strong: rgba(22, 25, 29, 0.14);
+  /* Gold — Selective yellow, creamed down */
+  --gold: #F2C14E;
+  --gold-ink: #8A6410;
+  --gold-tint: #FBF2D9;
 
-  /* Depth */
-  --shadow-card: 0 1px 2px rgba(22,25,29,.05), 0 10px 30px rgba(22,25,29,.09);
-  --shadow-float: 0 2px 6px rgba(22,25,29,.06), 0 18px 48px rgba(22,25,29,.14);
-  --shadow-pill: 0 1px 2px rgba(22,25,29,.06);
+  /* Support — Imperial red (#FF1833), reserved for Pass/danger */
+  --danger: #E5152F;
+  --danger-tint: #FFE9EC;
+  --hairline: rgba(0, 42, 98, 0.09);
+  --hairline-strong: rgba(0, 42, 98, 0.16);
+
+  /* Depth — navy-tinted */
+  --shadow-card: 0 1px 2px rgba(0,42,98,.05), 0 10px 30px rgba(0,42,98,.08);
+  --shadow-float: 0 2px 6px rgba(0,42,98,.06), 0 18px 48px rgba(0,42,98,.14);
+  --shadow-pill: 0 1px 2px rgba(0,42,98,.06);
 
   /* Shape */
   --r-card: 28px;
@@ -182,7 +188,7 @@ button { font: inherit; color: inherit; }
   width: 92px; height: 92px; border-radius: 50%;
   background: var(--accent); color: #fff;
   display: grid; place-items: center;
-  box-shadow: 0 14px 34px rgba(11,138,92,.35);
+  box-shadow: 0 14px 34px rgba(0,62,205,.32);
   position: relative; z-index: 1;
 }
 .tap-ring {
@@ -284,8 +290,8 @@ button { font: inherit; color: inherit; }
 .fine-print { font-size: 12.5px; color: var(--ink-3); line-height: 1.5; }
 .fine-print.center { text-align: center; }
 .config-warn {
-  font-size: 13px; color: #8A6A1F;
-  background: #FBF3DF; border: 1px solid #EFE0B8;
+  font-size: 13px; color: var(--gold-ink);
+  background: var(--gold-tint); border: 1px solid #EEDCA8;
   padding: 12px 14px; border-radius: var(--r-md);
   line-height: 1.5;
 }
@@ -305,7 +311,7 @@ button { font: inherit; color: inherit; }
   font-size: 16px; font-weight: 600;
   letter-spacing: -0.01em;
   cursor: pointer;
-  box-shadow: 0 8px 22px rgba(11,138,92,.28);
+  box-shadow: 0 8px 22px rgba(0,62,205,.25);
   transition: transform .15s ease, background .15s ease;
   text-decoration: none;
 }
@@ -372,7 +378,7 @@ button { font: inherit; color: inherit; }
 .w30 { width: 30%; } .w50 { width: 50%; } .w60 { width: 60%; }
 .w70 { width: 70%; } .w90 { width: 90%; }
 .shimmer {
-  background: linear-gradient(100deg, var(--surface-2) 40%, #F7F7F4 50%, var(--surface-2) 60%);
+  background: linear-gradient(100deg, var(--surface-2) 40%, #F6F8FC 50%, var(--surface-2) 60%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -468,7 +474,7 @@ button { font: inherit; color: inherit; }
   background: var(--surface-2);
   color: var(--ink-2);
 }
-.pill.pay { background: var(--accent-tint); color: var(--accent); }
+.pill.pay { background: var(--gold-tint); color: var(--gold-ink); }
 
 .card-reasons { margin-top: 18px; display: flex; flex-direction: column; gap: 9px; }
 .reasons-label { font-size: 12px; font-weight: 600; color: var(--ink-3); text-transform: uppercase; letter-spacing: .06em; }
@@ -536,9 +542,9 @@ button { font: inherit; color: inherit; }
   color: #fff;
   border: none;
   font-size: 15px; font-weight: 600;
-  box-shadow: 0 8px 20px rgba(22,25,29,.22);
+  box-shadow: 0 8px 20px rgba(0,42,98,.24);
 }
-.ctrl-view:hover { background: #23272C; }
+.ctrl-view:hover { background: #063B7E; }
 .deck-hint {
   text-align: center;
   font-size: 12px; color: var(--ink-3);
@@ -551,7 +557,7 @@ button { font: inherit; color: inherit; }
 .sheet { position: fixed; inset: 0; z-index: 200; }
 .sheet-backdrop {
   position: absolute; inset: 0;
-  background: rgba(22,25,29,.32);
+  background: rgba(0,26,60,.34);
   backdrop-filter: blur(2px);
 }
 .sheet-panel {
@@ -737,7 +743,7 @@ button { font: inherit; color: inherit; }
   display: inline-flex; align-items: center; gap: 8px;
   white-space: nowrap;
 }
-.toast .tick { color: #57D9A3; }
+.toast .tick { color: var(--gold); }
 
 /* =========================================================================
    Reduced motion
