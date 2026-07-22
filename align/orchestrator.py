@@ -79,6 +79,10 @@ class SearchOrchestrator:
 
         best: SearchResult = SearchResult(used_radius=radius)
 
+        origin = None
+        if query.origin_lat is not None and query.origin_lng is not None:
+            origin = (query.origin_lat, query.origin_lng)
+
         for tier in tiers:
             try:
                 raw = self._client.search(
@@ -86,6 +90,7 @@ class SearchOrchestrator:
                     radius_miles=tier.radius,
                     part_time=tier.part_time,
                     use_category_tag=tier.use_category_tag,
+                    where=query.postcode or None,
                 )
             except AdzunaError as exc:
                 logger.warning("Adzuna search failed: %s", exc)
@@ -95,9 +100,10 @@ class SearchOrchestrator:
                 break
 
             effective_query = SearchQuery(
-                category=query.category, days=query.days, radius=tier.radius
+                category=query.category, days=query.days, radius=tier.radius,
+                origin_lat=query.origin_lat, origin_lng=query.origin_lng,
             )
-            filtered = filter_jobs(raw, tier.radius)
+            filtered = filter_jobs(raw, tier.radius, origin)
             ranked = rank_jobs(filtered, effective_query)
 
             if len(ranked) > len(best.jobs):

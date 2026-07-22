@@ -52,6 +52,7 @@ class AdzunaClient:
         max_days_old: int = 14,
         part_time: bool = True,
         use_category_tag: bool = True,
+        where: Optional[str] = None,
     ) -> List[Job]:
         """Query Adzuna and return normalised jobs.
 
@@ -84,7 +85,7 @@ class AdzunaClient:
             "app_key": self._settings.adzuna_app_key,
             "results_per_page": results_per_page,
             "what": mapping.keywords,
-            "where": ORIGIN_POSTCODE,
+            "where": where or ORIGIN_POSTCODE,
             "distance": _miles_to_metres(radius_miles),
             "max_days_old": max_days_old,
             "sort_by": "date",

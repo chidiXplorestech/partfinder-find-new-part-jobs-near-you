@@ -14,79 +14,163 @@
 <body>
   <div class="app" id="app">
 
-    <!-- ================= ONBOARDING ================= -->
+    <!-- ================= ONBOARDING (full flow) ================= -->
     <section id="onboarding" class="onboarding" hidden aria-label="Welcome to Align">
-      <button class="ob-skip" id="obSkip">Skip</button>
 
-      <div class="ob-track" id="obTrack">
-        <!-- Slide 1 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-pile">
-              <div class="mini-card pile-2"></div>
-              <div class="mini-card pile-1"></div>
-              <div class="art-chaos">
-                <div class="chaos-line" style="width:82%"></div>
-                <div class="chaos-line" style="width:64%"></div>
-                <div class="chaos-line" style="width:74%"></div>
-                <div class="chaos-line dim" style="width:58%"></div>
-                <div class="chaos-line dim" style="width:70%"></div>
-                <div class="chaos-fade"></div>
-              </div>
-              <div class="pile-badge">1,248</div>
-            </div>
-          </div>
-          <h1 class="ob-title">Stop scrolling through endless job boards.</h1>
-          <p class="ob-sub">Thousands of listings. Endless filters. Nobody has time for that.</p>
+      <!-- 0 · SPLASH -->
+      <div class="ob-step ob-splash" data-step="splash">
+        <div class="splash-glow" aria-hidden="true"></div>
+        <div class="splash-logo">align</div>
+        <p class="splash-tag">Great jobs.<br />Real people.</p>
+        <div class="splash-bar" aria-hidden="true"><span id="splashBarFill"></span></div>
+      </div>
+
+      <!-- 1–3 · INTRO SLIDES -->
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide1">
+          <div class="ob-photo-fallback grad-a" aria-hidden="true"></div>
         </div>
-
-        <!-- Slide 2 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-swipe">
-              <div class="swipe-cue pass">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </div>
-              <div class="swipe-cue like">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
-              </div>
-              <div class="mini-card swipe-card">
-                <div class="mc-logo"></div>
-                <div class="mc-line w60"></div>
-                <div class="mc-line w40 dim"></div>
-                <div class="mc-pill"></div>
-              </div>
-            </div>
-          </div>
-          <h1 class="ob-title">Swipe through real jobs in seconds.</h1>
-          <p class="ob-sub">Right to shortlist, left to pass. One job at a time, always live.</p>
+        <div class="ob-slide-body">
+          <h1 class="ob-title">Stop scrolling through endless <span class="hl">job boards.</span></h1>
+          <p class="ob-sub">Outdated listings.<br />Too much noise.<br />Not enough real opportunities.</p>
         </div>
-
-        <!-- Slide 3 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-apply">
-              <div class="mini-card solo">
-                <div class="mc-logo"></div>
-                <div class="mc-line w60"></div>
-                <div class="mc-line w40 dim"></div>
-                <div class="mc-apply"></div>
-              </div>
-              <svg class="plane" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-              <svg class="plane-trail" viewBox="0 0 60 40" width="60" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 38c14-2 26-8 34-18" stroke-dasharray="1 8"/></svg>
-            </div>
-          </div>
-          <h1 class="ob-title">See one you like? One tap to apply.</h1>
-          <p class="ob-sub">We send you straight to the employer — no middlemen, no extra steps.</p>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
       </div>
 
-      <div class="ob-footer">
-        <div class="ob-dots" id="obDots" aria-hidden="true">
-          <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide2">
+          <div class="ob-photo-fallback grad-b" aria-hidden="true"></div>
         </div>
-        <button class="btn-primary" id="obNext">Continue</button>
+        <div class="ob-slide-body">
+          <h1 class="ob-title"><span class="hl">Swipe</span> through real jobs in seconds.</h1>
+          <p class="ob-sub">Fast. Fun. Simple.<br />Jobs that actually fit you.</p>
+        </div>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
       </div>
+
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide3">
+          <div class="ob-photo-fallback grad-c" aria-hidden="true"></div>
+        </div>
+        <div class="ob-slide-body">
+          <h1 class="ob-title">See one you like? <span class="hl">One tap</span> to apply.</h1>
+          <p class="ob-sub">No long forms. No CV uploads.<br />Just one tap and you're in.</p>
+        </div>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- 4 · POSTCODE -->
+      <div class="ob-step ob-form" data-step="postcode" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">Where are you looking for work?</h1>
+          <p class="ob-form-sub">Enter your postcode and we'll show you jobs near you.</p>
+          <div class="input-wrap">
+            <input type="text" id="obPostcode" class="ob-input" placeholder="Enter postcode" autocomplete="postal-code" inputmode="text" />
+            <button class="input-action" id="obGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+          <p class="ob-hint" id="obPostcodeMsg" hidden></p>
+          <div class="map-illus" aria-hidden="true">
+            <div class="map-grid"></div>
+            <div class="map-pulse"></div>
+            <div class="map-pin"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
+          </div>
+        </div>
+        <button class="btn-primary btn-cta" id="obPostcodeNext">Find jobs near me</button>
+      </div>
+
+      <!-- 5 · NAME -->
+      <div class="ob-step ob-form" data-step="name" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">What should we call <span class="hl">you?</span></h1>
+          <p class="ob-form-sub">Tell us your name so we can personalise your experience.</p>
+          <input type="text" id="obName" class="ob-input solo" placeholder="Your full name" autocomplete="name" />
+        </div>
+        <button class="btn-primary btn-cta" id="obNameNext">Continue</button>
+      </div>
+
+      <!-- 6 · CREATE ACCOUNT -->
+      <div class="ob-step ob-form" data-step="account" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">Create your <span class="hl">account</span></h1>
+          <p class="ob-form-sub">One last step and you're in.</p>
+
+          <label class="field-lbl" for="obEmail">Email</label>
+          <div class="input-wrap">
+            <input type="email" id="obEmail" class="ob-input" placeholder="you@example.com" autocomplete="email" inputmode="email" />
+            <span class="input-tick" id="obEmailTick" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          </div>
+
+          <label class="field-lbl" for="obPassword">Password</label>
+          <div class="input-wrap">
+            <input type="password" id="obPassword" class="ob-input" placeholder="Create a password" autocomplete="new-password" />
+            <button class="input-action" id="obPwToggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+
+          <ul class="pw-rules" id="pwRules">
+            <li data-rule="len"><span class="rule-dot"></span>At least 8 characters</li>
+            <li data-rule="num"><span class="rule-dot"></span>Includes a number</li>
+            <li data-rule="special"><span class="rule-dot"></span>Includes a special character</li>
+            <li data-rule="case"><span class="rule-dot"></span>Includes upper &amp; lower case</li>
+          </ul>
+          <p class="ob-hint danger" id="obAccountMsg" hidden></p>
+        </div>
+        <button class="btn-primary btn-cta" id="obAccountNext">Create account</button>
+        <p class="ob-alt">Already have an account? <button type="button" id="obLogin" class="link-btn">Log in</button></p>
+      </div>
+
+      <!-- 7 · PAYWALL / OFFER -->
+      <div class="ob-step ob-form" data-step="offer" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title big">Unlock Align for just <span class="hl">£1</span> for <span class="hl">12 months</span></h1>
+          <p class="ob-form-sub">First month is on us. Free.</p>
+          <ul class="offer-list">
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg></span>
+              <div><div class="offer-t">24-hour job refresh</div><div class="offer-d">We update jobs every 24 hours so you always see the latest.</div></div>
+            </li>
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+              <div><div class="offer-t">Fresh job notifications</div><div class="offer-d">Get notified when new, relevant jobs drop near you.</div></div>
+            </li>
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+              <div><div class="offer-t">One tap to apply</div><div class="offer-d">Quick. Easy. No hassle.</div></div>
+            </li>
+          </ul>
+        </div>
+        <button class="btn-primary btn-cta" id="obOfferNext">Get started for £1</button>
+        <p class="ob-alt muted">Cancel anytime. No hidden fees.</p>
+      </div>
+
+      <!-- 8 · ALL SET -->
+      <div class="ob-step ob-done" data-step="done" hidden>
+        <div class="ob-photo tall" data-img="done">
+          <div class="ob-photo-fallback grad-a" aria-hidden="true"></div>
+        </div>
+        <div class="done-card">
+          <div class="done-spark" aria-hidden="true">✦</div>
+          <h1 class="done-title">You're all set!</h1>
+          <p class="done-sub">Let's find your next job.</p>
+          <button class="btn-primary btn-cta" id="obStart">Start exploring</button>
+        </div>
+      </div>
+
     </section>
 
     <!-- ================= TOP BAR ================= -->

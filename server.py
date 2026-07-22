@@ -37,6 +37,8 @@ from align.config import (
 from align.models import SearchQuery
 from align.orchestrator import SearchOrchestrator
 from align.payments import PaymentError, StripeGateway
+from align import accounts
+from align.geocode import lookup_postcode
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -124,7 +126,18 @@ def create_app() -> Flask:
                 503,
             )
 
-        query = SearchQuery(category=category, days=days, radius=radius)
+        origin = data.get("origin") or {}
+        try:
+            olat = float(origin["lat"]) if origin.get("lat") is not None else None
+            olng = float(origin["lng"]) if origin.get("lng") is not None else None
+        except (TypeError, ValueError, KeyError):
+            olat = olng = None
+        postcode = str(data.get("postcode") or "").strip() or None
+
+        query = SearchQuery(
+            category=category, days=days, radius=radius,
+            origin_lat=olat, origin_lng=olng, postcode=postcode,
+        )
         result = orchestrator.search(query)
 
         if result.error and result.is_empty:
@@ -204,6 +217,44 @@ def create_app() -> Flask:
     def pay_cancel():
         """User backed out of the payment page."""
         return redirect(url_for("index", pay="cancelled"))
+
+    # -------------------------------------------------------------- #
+    # Onboarding: postcode lookup + account creation
+    # -------------------------------------------------------------- #
+    @app.route("/api/geocode")
+    def api_geocode():
+        """Resolve a UK postcode to coordinates (server-side postcodes.io)."""
+        result = lookup_postcode(request.args.get("postcode", ""))
+        return jsonify(result), (200 if result.get("ok") else 400)
+
+    @app.route("/api/signup", methods=["POST"])
+    def api_signup():
+        """Create an account (email + strong password, validated server-side)."""
+        data = request.get_json(silent=True) or {}
+        result = accounts.create_user(
+            email=str(data.get("email", "")),
+            password=str(data.get("password", "")),
+            name=str(data.get("name", "")),
+            postcode=str(data.get("postcode", "")),
+        )
+        if not result.get("ok"):
+            return jsonify(result), 400
+        session["uid"] = result["id"]
+        session["name"] = str(data.get("name", ""))
+        return jsonify({"ok": True})
+
+    @app.route("/api/login", methods=["POST"])
+    def api_login():
+        """Sign an existing user in."""
+        data = request.get_json(silent=True) or {}
+        result = accounts.authenticate(
+            str(data.get("email", "")), str(data.get("password", ""))
+        )
+        if not result.get("ok"):
+            return jsonify(result), 401
+        session["uid"] = result["id"]
+        session["name"] = result.get("name", "")
+        return jsonify({"ok": True, "name": result.get("name", "")})
 
     @app.route("/healthz")
     def healthz():

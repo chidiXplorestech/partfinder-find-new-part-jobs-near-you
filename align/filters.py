@@ -46,13 +46,18 @@ def haversine_miles(
     return 2 * radius_miles * math.asin(min(1.0, math.sqrt(a)))
 
 
-def compute_distance(job: Job) -> Optional[float]:
-    """Return the job's distance from the search origin, or ``None``."""
+def compute_distance(
+    job: Job, origin: Optional[tuple] = None
+) -> Optional[float]:
+    """Return the job's distance from the search origin, or ``None``.
+
+    ``origin`` is an optional ``(lat, lng)`` pair; when omitted the app's
+    default origin (NG7 1NZ) is used, preserving backward compatibility.
+    """
     if job.latitude is None or job.longitude is None:
         return None
-    return haversine_miles(
-        config.ORIGIN_LAT, config.ORIGIN_LNG, job.latitude, job.longitude
-    )
+    lat0, lng0 = origin if origin else (config.ORIGIN_LAT, config.ORIGIN_LNG)
+    return haversine_miles(lat0, lng0, job.latitude, job.longitude)
 
 
 # --------------------------------------------------------------------------- #
@@ -112,18 +117,20 @@ def has_valid_apply_link(job: Job) -> bool:
 # --------------------------------------------------------------------------- #
 # Pipeline entry point
 # --------------------------------------------------------------------------- #
-def filter_jobs(jobs: List[Job], radius_miles: int) -> List[Job]:
+def filter_jobs(
+    jobs: List[Job], radius_miles: int, origin: Optional[tuple] = None
+) -> List[Job]:
     """Apply all hard rules and return the surviving jobs.
 
     Distance is computed and cached on each job as a side effect so downstream
-    ranking can reuse it.
+    ranking can reuse it. ``origin`` is an optional ``(lat, lng)`` pair.
     """
     survivors: List[Job] = []
     seen_urls = set()
 
     for job in jobs:
         # Cache distance for ranking regardless of the outcome.
-        job.distance_miles = compute_distance(job)
+        job.distance_miles = compute_distance(job, origin)
 
         if not has_valid_apply_link(job):
             continue

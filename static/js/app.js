@@ -58,6 +58,8 @@
   // =======================================================================
   //  Onboarding
   // =======================================================================
+  var profile = load("align.profile", {}); // { name, email, postcode, origin:{lat,lng} }
+
   function startApp() {
     onboarding.hidden = true;
     topbar.hidden = false;
@@ -72,41 +74,158 @@
   }
 
   function showHeroPill() {
-    // If the user has run a search this session, echo the real count back;
-    // otherwise show honest evergreen copy (never a fabricated number).
     var lastCount = load("align.lastCount", null);
+    var place = profile.postcode ? " in " + profile.postcode : "";
     var text = (typeof lastCount === "number" && lastCount > 0)
       ? lastCount + " local jobs matched last time"
-      : "Fresh local jobs, updated every day";
+      : "Fresh local jobs" + place + ", updated daily";
     $("heroPillText").textContent = text;
     $("heroPill").hidden = false;
+    if (profile.name) $("greeting").textContent = greetWord() + ", " + profile.name.split(" ")[0];
+  }
+
+  function greetWord() {
+    var h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  }
+
+  // ---- Onboarding step machine ----
+  var obSteps = [];
+  var obIndex = 0;
+
+  function obShow(i) {
+    obIndex = Math.max(0, Math.min(obSteps.length - 1, i));
+    obSteps.forEach(function (s, n) { s.hidden = n !== obIndex; });
+    var el = obSteps[obIndex];
+    if (hasGSAP && !REDUCED_MOTION) {
+      el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering");
+    }
+    if (el.dataset.step === "splash") runSplash();
+    var focusable = el.querySelector("input");
+    if (focusable && el.dataset.step !== "splash") setTimeout(function () { focusable.focus(); }, 260);
+  }
+  function obNext() { obShow(obIndex + 1); }
+  function obBack() { obShow(obIndex - 1); }
+
+  function runSplash() {
+    var fill = $("splashBarFill");
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(fill, { width: "0%" }, { width: "100%", duration: 4, ease: "none" });
+    } else { fill.style.width = "100%"; }
+    clearTimeout(runSplash._t);
+    runSplash._t = setTimeout(function () { if (obSteps[obIndex].dataset.step === "splash") obNext(); }, 4000);
   }
 
   (function initOnboarding() {
+    // Load any photos the user has dropped into static/img/onboarding/.
+    document.querySelectorAll(".ob-photo[data-img]").forEach(function (ph) {
+      var name = ph.getAttribute("data-img");
+      var img = new Image();
+      img.onload = function () { ph.style.backgroundImage = "url('/static/img/onboarding/" + name + ".jpg')"; };
+      img.src = "/static/img/onboarding/" + name + ".jpg";
+    });
+
     if (load("align.onboarded", false)) { startApp(); return; }
     onboarding.hidden = false;
+    obSteps = Array.prototype.slice.call(document.querySelectorAll("#onboarding .ob-step"));
 
-    var track = $("obTrack");
-    var dots = $("obDots").children;
-    var next = $("obNext");
-    var slideCount = track.children.length;
+    // Generic slide back/next arrows
+    document.querySelectorAll("#onboarding [data-ob-next]").forEach(function (b) { b.addEventListener("click", obNext); });
+    document.querySelectorAll("#onboarding [data-ob-back]").forEach(function (b) { b.addEventListener("click", obBack); });
 
-    function currentSlide() {
-      return Math.round(track.scrollLeft / track.clientWidth);
-    }
-    function syncDots() {
-      var idx = currentSlide();
-      for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("active", i === idx);
-      next.textContent = idx === slideCount - 1 ? "Start swiping" : "Continue";
-    }
-    track.addEventListener("scroll", function () { requestAnimationFrame(syncDots); });
-    next.addEventListener("click", function () {
-      var idx = currentSlide();
-      if (idx >= slideCount - 1) { startApp(); return; }
-      track.scrollTo({ left: (idx + 1) * track.clientWidth, behavior: REDUCED_MOTION ? "auto" : "smooth" });
-    });
-    $("obSkip").addEventListener("click", startApp);
+    wireOnboardingForms();
+    obShow(0);
   })();
+
+  function wireOnboardingForms() {
+    // --- Postcode ---
+    var pcInput = $("obPostcode"), pcMsg = $("obPostcodeMsg");
+    if (profile.postcode) pcInput.value = profile.postcode;
+    $("obGeoBtn").addEventListener("click", function () {
+      if (!navigator.geolocation) return;
+      pcMsg.hidden = false; pcMsg.className = "ob-hint"; pcMsg.textContent = "Finding your location…";
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        profile.origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        pcMsg.className = "ob-hint ok"; pcMsg.textContent = "Location found ✓";
+      }, function () { pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Couldn't get location — enter a postcode instead."; });
+    });
+    $("obPostcodeNext").addEventListener("click", function () {
+      var pc = pcInput.value.trim();
+      if (!pc && !profile.origin) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Enter your postcode to find nearby jobs."; return; }
+      var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Finding jobs…";
+      pcMsg.hidden = true;
+      if (!pc) { profile.postcode = ""; persist("align.profile", profile); btn.disabled = false; btn.textContent = lbl; obNext(); return; }
+      fetch("/api/geocode?postcode=" + encodeURIComponent(pc))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          btn.disabled = false; btn.textContent = lbl;
+          if (!d.ok) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = d.error || "We couldn't find that postcode."; return; }
+          profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
+          persist("align.profile", profile);
+          obNext();
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = lbl; pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Network error — try again."; });
+    });
+
+    // --- Name ---
+    var nameInput = $("obName");
+    if (profile.name) nameInput.value = profile.name;
+    $("obNameNext").addEventListener("click", function () {
+      profile.name = nameInput.value.trim();
+      persist("align.profile", profile);
+      obNext();
+    });
+
+    // --- Account ---
+    var email = $("obEmail"), pw = $("obPassword"), tick = $("obEmailTick"), acctMsg = $("obAccountMsg");
+    var rules = { len: function (v) { return v.length >= 8; }, num: function (v) { return /\d/.test(v); },
+      special: function (v) { return /[^A-Za-z0-9]/.test(v); }, case: function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); } };
+    function emailValid(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+    function refreshPw() {
+      var v = pw.value, allOk = true;
+      document.querySelectorAll("#pwRules li").forEach(function (li) {
+        var ok = rules[li.getAttribute("data-rule")](v);
+        li.classList.toggle("met", ok); if (!ok) allOk = false;
+      });
+      return allOk;
+    }
+    email.addEventListener("input", function () { tick.hidden = !emailValid(email.value.trim()); });
+    pw.addEventListener("input", refreshPw);
+    $("obPwToggle").addEventListener("click", function () { pw.type = pw.type === "password" ? "text" : "password"; });
+    $("obLogin").addEventListener("click", function () {
+      acctMsg.hidden = false; acctMsg.className = "ob-hint"; acctMsg.textContent = "Enter your email and password above, then tap Create account to sign in.";
+    });
+    $("obAccountNext").addEventListener("click", function () {
+      var e = email.value.trim(), p = pw.value;
+      if (!emailValid(e)) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Please enter a valid email address."; return; }
+      if (!refreshPw()) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Your password doesn't meet all the rules yet."; return; }
+      var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Creating…"; acctMsg.hidden = true;
+      fetch("/api/signup", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e, password: p, name: profile.name || "" }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          btn.disabled = false; btn.textContent = lbl;
+          if (!res.d.ok) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = res.d.error || "Couldn't create your account."; return; }
+          profile.email = e; persist("align.profile", profile);
+          obNext();
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = lbl; acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Network error — try again."; });
+    });
+
+    // --- Offer / paywall ---
+    $("obOfferNext").addEventListener("click", function () {
+      if (CONFIG.paywallActive && !CONFIG.isPaid) {
+        var btn = this; btn.disabled = true; btn.textContent = "One moment…";
+        fetch("/api/checkout", { method: "POST" }).then(function (r) { return r.json(); }).then(function (p) {
+          if (p.checkout_url) { window.location.href = p.checkout_url; return; }
+          btn.disabled = false; btn.textContent = "Get started for £1"; obNext();
+        }).catch(function () { btn.disabled = false; btn.textContent = "Get started for £1"; obNext(); });
+      } else { obNext(); }
+    });
+
+    // --- Done ---
+    $("obStart").addEventListener("click", startApp);
+  }
 
   // ---- Greeting ----------------------------------------------------------
   (function greet() {
@@ -143,6 +262,8 @@
       category: data.get("category"),
       days: data.getAll("days"),
       radius: parseInt(data.get("radius"), 10) || 5,
+      postcode: profile.postcode || null,
+      origin: profile.origin || null,
     };
   }
 

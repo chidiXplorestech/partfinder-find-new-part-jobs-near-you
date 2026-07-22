@@ -20,6 +20,10 @@ class SearchQuery:
     category: str
     days: List[str] = field(default_factory=list)
     radius: int = 5
+    #: Per-user search origin. Defaults to None -> the app's default (NG7 1NZ).
+    origin_lat: Optional[float] = None
+    origin_lng: Optional[float] = None
+    postcode: Optional[str] = None
 
 
 @dataclass
