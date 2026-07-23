@@ -910,8 +910,20 @@
     });
   });
   $("acctLogout").addEventListener("click", function () {
-    try { localStorage.removeItem("align.onboarded"); } catch (e) {}
-    location.reload();
+    var btn = this;
+    btn.disabled = true;
+    // Clear every trace of the session locally, then clear the server session,
+    // then reload straight back into onboarding — a full, clean sign-out.
+    function finish() {
+      try {
+        ["align.onboarded", "align.profile", "align.saved", "align.applied",
+         "align.notif", "align.lastCount"].forEach(function (k) {
+          localStorage.removeItem(k);
+        });
+      } catch (e) {}
+      location.reload();
+    }
+    fetch("/api/logout", { method: "POST" }).then(finish).catch(finish);
   });
   updateSavedBadge(false);
 
@@ -1022,6 +1034,9 @@
     if (params.get("paid") === "1") {
       history.replaceState({}, "", window.location.pathname);
       CONFIG.isPaid = true;
+      // Payment succeeded → drop the user straight into the app rather than
+      // restarting onboarding (they already created their account pre-paywall).
+      if (!onboarding.hidden) startApp();
       toast('Align unlocked <span class="tick">✓</span> Welcome in.');
     } else if (params.get("pay") === "failed") {
       history.replaceState({}, "", window.location.pathname);

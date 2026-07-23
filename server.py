@@ -270,6 +270,16 @@ def create_app() -> Flask:
         session["name"] = result.get("name", "")
         return jsonify({"ok": True, "name": result.get("name", "")})
 
+    @app.route("/api/logout", methods=["POST"])
+    def api_logout():
+        """Fully sign the browser out: clear the whole server session.
+
+        Drops the account (``uid``/``name``) and the paywall ``paid`` flag so the
+        next visit starts clean. The client clears its own localStorage too.
+        """
+        session.clear()
+        return jsonify({"ok": True})
+
     @app.route("/healthz")
     def healthz():
         """Simple health probe for deploys."""

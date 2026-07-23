@@ -215,8 +215,13 @@ class Settings:
     )
     #: GoCardless hosted payment link (https://pay.gocardless.com/...). When set,
     #: this is the primary payment method and the CTA links straight to it.
+    #: Defaults to the project's hosted £1 link so the paywall is functional as
+    #: soon as PAYWALL_ENABLED=1 — override in .env to use your own link.
     gocardless_payment_link: str = field(
-        default_factory=lambda: os.getenv("GOCARDLESS_PAYMENT_LINK", "").strip()
+        default_factory=lambda: os.getenv(
+            "GOCARDLESS_PAYMENT_LINK",
+            "https://pay.gocardless.com/BRT01KY3S2V89HC5QBH5WG89ZHBE8",
+        ).strip()
     )
     #: Shared secret appended to the GoCardless success-redirect URL so that
     #: only a genuine post-payment return can unlock access. Optional but
