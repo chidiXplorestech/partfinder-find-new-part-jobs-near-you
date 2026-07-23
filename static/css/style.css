@@ -969,6 +969,24 @@ body.has-tabbar .control-bar { margin-bottom: 4px; }
 .acct-foot { text-align: center; color: var(--ink-3); font-size: 12px; padding: 18px 0; }
 .section-empty { text-align: center; color: var(--ink-3); font-size: 14px; line-height: 1.55; padding: 50px 20px; }
 
+/* Notifications */
+.notif-alert { display: flex; align-items: center; gap: 12px; background: var(--accent-tint); border-radius: 16px; padding: 14px; }
+.notif-ic { width: 40px; height: 40px; border-radius: 12px; background: var(--surface); color: var(--accent); display: grid; place-items: center; flex-shrink: 0; }
+.notif-alert-body { flex: 1; min-width: 0; }
+.notif-alert-t { font-size: 14.5px; font-weight: 700; }
+.notif-alert-d { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; line-height: 1.4; }
+.notif-toggle { flex-shrink: 0; border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; padding: 9px 15px; border-radius: 999px; cursor: pointer; }
+.notif-toggle.on { background: var(--surface-2); color: var(--ink-2); }
+.notif-list { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
+.notif-empty { text-align: center; color: var(--ink-3); font-size: 13.5px; padding: 30px 10px; line-height: 1.5; }
+
+/* Onboarding progress bar (across steps) */
+.ob-progress { position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 22px; right: 22px; height: 4px; border-radius: 2px; background: var(--hairline); overflow: hidden; z-index: 5; opacity: 0; transition: opacity .2s ease; }
+.ob-progress.show { opacity: 1; }
+.ob-progress span { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 2px; transition: width .35s cubic-bezier(.22,1,.36,1); }
+.ob-form { padding-top: calc(30px + env(safe-area-inset-top)); }
+.ob-slide { padding-top: 14px; }
+
 /* =========================================================================
    Reduced motion
    ========================================================================= */

@@ -104,8 +104,26 @@
       el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering");
     }
     if (el.dataset.step === "splash") runSplash();
+    updateObProgress();
     var focusable = el.querySelector("input");
     if (focusable && el.dataset.step !== "splash") setTimeout(function () { focusable.focus(); }, 260);
+  }
+
+  function updateObProgress() {
+    var prog = $("obProgress"), fill = $("obProgressFill");
+    var step = obSteps[obIndex].dataset.step;
+    // Hide the bar on splash and the final "done" screen; show progress between.
+    if (step === "splash" || step === "done") { prog.classList.remove("show"); return; }
+    prog.classList.add("show");
+    var last = obSteps.length - 1; // index of 'done'
+    fill.style.width = Math.round((obIndex / last) * 100) + "%";
+    // Reflect the current intro slide in its own dash row.
+    var dashes = obSteps[obIndex].querySelectorAll(".ob-dashes span");
+    if (dashes.length) {
+      var slideNum = 0;
+      for (var k = 0; k <= obIndex; k++) if (obSteps[k].dataset.step === "slide") slideNum++;
+      dashes.forEach(function (d, n) { d.classList.toggle("on", n === slideNum - 1); });
+    }
   }
   function obNext() { obShow(obIndex + 1); }
   function obBack() { obShow(obIndex - 1); }
@@ -135,6 +153,19 @@
     // Generic slide back/next arrows
     document.querySelectorAll("#onboarding [data-ob-next]").forEach(function (b) { b.addEventListener("click", obNext); });
     document.querySelectorAll("#onboarding [data-ob-back]").forEach(function (b) { b.addEventListener("click", obBack); });
+
+    // Swipe left/right to navigate the intro slides.
+    obSteps.forEach(function (step) {
+      if (step.dataset.step !== "slide") return;
+      var x0 = null;
+      step.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+      step.addEventListener("touchend", function (e) {
+        if (x0 === null) return;
+        var dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) < 50) return;
+        if (dx < 0) obNext(); else obBack();
+      }, { passive: true });
+    });
 
     wireOnboardingForms();
     obShow(0);
@@ -359,14 +390,14 @@
 
   function matchRing(pct) {
     var r = 19, c = 2 * Math.PI * r;
-    var off = c * (1 - pct / 100);
+    // Start empty; the ring is drawn to its target when the card enters (animateRing).
     return (
-      '<div class="match-ring" title="Match score" aria-label="' + pct + '% match">' +
+      '<div class="match-ring" title="Match score" aria-label="' + pct + '% match" data-pct="' + pct + '">' +
       '<svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">' +
       '<circle class="ring-bg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4"/>' +
-      '<circle class="ring-fg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '"/>' +
+      '<circle class="ring-fg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4" stroke-dasharray="' + c + '" stroke-dashoffset="' + c + '"/>' +
       "</svg>" +
-      '<span class="ring-label">' + pct + "</span>" +
+      '<span class="ring-label" data-count="' + pct + '">0</span>' +
       "</div>"
     );
   }
@@ -429,7 +460,28 @@
     if (top && hasGSAP && !REDUCED_MOTION) {
       gsap.from(top, { y: 26, opacity: 0, duration: 0.4, ease: "power3.out" });
     }
+    if (top) animateRing(top);
     enableDrag();
+  }
+
+  // Draw the match ring + count the % up when a card becomes active.
+  function animateRing(card) {
+    var ring = card.querySelector(".match-ring");
+    if (!ring || ring._drawn) return;
+    ring._drawn = true;
+    var fg = ring.querySelector(".ring-fg");
+    var label = ring.querySelector(".ring-label");
+    var pct = parseInt(ring.getAttribute("data-pct"), 10) || 0;
+    var r = 19, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+    if (!hasGSAP || REDUCED_MOTION) {
+      fg.setAttribute("stroke-dashoffset", off);
+      label.textContent = pct;
+      return;
+    }
+    gsap.to(fg, { attr: { "stroke-dashoffset": off }, duration: 0.9, ease: "power2.out", delay: 0.15 });
+    var counter = { v: 0 };
+    gsap.to(counter, { v: pct, duration: 0.9, ease: "power2.out", delay: 0.15,
+      onUpdate: function () { label.textContent = Math.round(counter.v); } });
   }
 
   function positionCards() {
@@ -528,6 +580,8 @@
       if (idx >= 0) deck.insertBefore(buildCard(jobs[idx]), deck.firstChild);
     }
     positionCards();
+    var top = topCard();
+    if (top) animateRing(top);
     enableDrag();
     updateCount();
   }
@@ -735,6 +789,44 @@
     location.reload();
   });
   updateSavedBadge(false);
+
+  // =======================================================================
+  //  Notifications (real browser-permission trigger)
+  // =======================================================================
+  function notifsOn() {
+    return load("align.notif", false) ||
+      (typeof Notification !== "undefined" && Notification.permission === "granted");
+  }
+  function renderNotifs() {
+    var on = notifsOn();
+    var toggle = $("notifToggle");
+    toggle.textContent = on ? "On" : "Enable";
+    toggle.classList.toggle("on", on);
+    $("notifAlertD").textContent = on
+      ? "You're all set — we'll ping you when fresh jobs drop near you."
+      : "Turn on alerts and we'll ping you when fresh jobs drop near you.";
+    $("notifList").innerHTML =
+      '<div class="notif-empty">No alerts yet.<br/>New matches near ' +
+      esc(profile.postcode || "you") + " will show up here.</div>";
+  }
+  $("bellBtn").addEventListener("click", function () {
+    renderNotifs();
+    openSheet($("notifSheet"));
+  });
+  $("notifToggle").addEventListener("click", function () {
+    if (typeof Notification === "undefined") { persist("align.notif", true); renderNotifs(); toast("Job alerts on"); return; }
+    if (Notification.permission === "granted") { persist("align.notif", true); renderNotifs(); toast("Job alerts already on"); return; }
+    Notification.requestPermission().then(function (p) {
+      if (p === "granted") {
+        persist("align.notif", true);
+        toast('Job alerts on <span class="tick">✓</span>');
+        try { new Notification("Align", { body: "You'll be notified when fresh jobs drop near you." }); } catch (e) {}
+      } else {
+        toast("Allow notifications in your browser to enable alerts.");
+      }
+      renderNotifs();
+    });
+  });
 
   // =======================================================================
   //  Sheets

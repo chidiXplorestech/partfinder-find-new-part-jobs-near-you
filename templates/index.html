@@ -17,6 +17,8 @@
     <!-- ================= ONBOARDING (full flow) ================= -->
     <section id="onboarding" class="onboarding" hidden aria-label="Welcome to Align">
 
+      <div class="ob-progress" id="obProgress" aria-hidden="true"><span id="obProgressFill"></span></div>
+
       <!-- 0 · SPLASH -->
       <div class="ob-step ob-splash" data-step="splash">
         <div class="splash-glow" aria-hidden="true"></div>
@@ -549,6 +551,26 @@
         <p class="sent-copy">We've opened <span id="sentCompany">the employer</span>'s site in a new tab. Finish there and you're done — good luck! 🍀</p>
         <button class="btn-primary btn-cta" id="sentKeep">Keep swiping</button>
         <button class="paywall-later" id="sentApplications">View my applications</button>
+      </div>
+    </div>
+
+    <!-- ================= NOTIFICATIONS ================= -->
+    <div id="notifSheet" class="sheet" hidden>
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Notifications">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="drawer-head"><h2>Notifications</h2>
+          <button class="icon-btn" data-close-sheet aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="notif-alert" id="notifAlert">
+          <span class="notif-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+          <div class="notif-alert-body">
+            <div class="notif-alert-t">Get job alerts</div>
+            <div class="notif-alert-d" id="notifAlertD">Turn on alerts and we'll ping you when fresh jobs drop near you.</div>
+          </div>
+          <button class="notif-toggle" id="notifToggle">Enable</button>
+        </div>
+        <div id="notifList" class="notif-list"></div>
       </div>
     </div>
 
