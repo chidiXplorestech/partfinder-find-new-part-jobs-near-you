@@ -908,6 +908,68 @@ button { font: inherit; color: inherit; }
 .toast .tick { color: var(--gold); }
 
 /* =========================================================================
+   Bottom tab bar + sections
+   ========================================================================= */
+.tabbar {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 100%; max-width: var(--max-w);
+  display: flex; z-index: 90;
+  background: var(--surface);
+  border-top: 1px solid var(--hairline);
+  padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+  box-shadow: 0 -6px 24px rgba(20,18,14,.06);
+}
+.tab {
+  position: relative; flex: 1;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: none; background: none; cursor: pointer;
+  color: var(--ink-3); font-size: 11px; font-weight: 600;
+  padding: 6px 2px; min-height: 48px;
+  transition: color .15s ease;
+}
+.tab.active { color: var(--accent); }
+.tab:active { transform: scale(.94); }
+.tab-badge {
+  position: absolute; top: 2px; right: 50%; margin-right: -20px;
+  min-width: 16px; height: 16px; padding: 0 4px;
+  display: grid; place-items: center; border-radius: 8px;
+  background: var(--accent); color: #fff; font-size: 10px; font-weight: 700;
+  border: 2px solid var(--surface);
+}
+.bell-dot { position: absolute; top: 9px; right: 11px; width: 8px; height: 8px; border-radius: 50%; background: var(--accent); border: 2px solid var(--surface); }
+
+/* When the tab bar is present, keep content clear of it */
+body.has-tabbar #deckView,
+body.has-tabbar #homeView,
+body.has-tabbar .section-view { padding-bottom: 84px; }
+body.has-tabbar .control-bar { margin-bottom: 4px; }
+
+/* Section views (Saved / Applications / You) */
+.section-view { flex: 1; display: flex; flex-direction: column; }
+.section-head { padding: 14px 2px 12px; }
+.section-title { font-size: 26px; font-weight: 800; letter-spacing: -0.03em; }
+.section-sub { color: var(--ink-3); font-size: 14px; margin-top: 3px; }
+.section-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+
+/* Account view */
+.acct-card { display: flex; align-items: center; gap: 14px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 18px; padding: 16px; box-shadow: var(--shadow-pill); }
+.acct-avatar { width: 54px; height: 54px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 800; font-size: 22px; display: grid; place-items: center; flex-shrink: 0; }
+.acct-name { font-size: 17px; font-weight: 700; }
+.acct-email { font-size: 13.5px; color: var(--ink-3); margin-top: 2px; }
+.acct-rows { margin-top: 14px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: var(--shadow-pill); overflow: hidden; }
+.acct-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--hairline); }
+.acct-row:last-child { border-bottom: none; }
+.ar-k { font-size: 14px; color: var(--ink-2); }
+.ar-v { font-size: 14px; font-weight: 600; }
+.ar-badge { background: var(--accent-tint); color: var(--accent); font-size: 12px; font-weight: 700; padding: 5px 11px; border-radius: 999px; }
+.acct-actions { margin-top: 14px; display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--hairline); border-radius: 16px; box-shadow: var(--shadow-pill); overflow: hidden; }
+.acct-link { text-align: left; border: none; background: none; padding: 15px 16px; font-size: 14.5px; font-weight: 600; color: var(--ink); cursor: pointer; border-bottom: 1px solid var(--hairline); }
+.acct-link:last-child { border-bottom: none; }
+.acct-link.danger { color: var(--danger); }
+.acct-foot { text-align: center; color: var(--ink-3); font-size: 12px; padding: 18px 0; }
+.section-empty { text-align: center; color: var(--ink-3); font-size: 14px; line-height: 1.55; padding: 50px 20px; }
+
+/* =========================================================================
    Reduced motion
    ========================================================================= */
 @media (prefers-reduced-motion: reduce) {

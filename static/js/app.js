@@ -63,9 +63,12 @@
   function startApp() {
     onboarding.hidden = true;
     topbar.hidden = false;
+    $("tabbar").hidden = false;
+    document.body.classList.add("has-tabbar");
     showView("home");
     persist("align.onboarded", true);
     showHeroPill();
+    updateSavedBadge(false);
     if (hasGSAP && !REDUCED_MOTION) {
       gsap.from(".hero-pill", { y: 10, opacity: 0, duration: 0.5, ease: "power3.out" });
       gsap.from(".hero-eyebrow, .hero-title", { y: 14, opacity: 0, duration: 0.5, stagger: 0.07, delay: 0.05, ease: "power3.out" });
@@ -239,9 +242,17 @@
   // =======================================================================
   //  View / state management
   // =======================================================================
+  var discoverHasDeck = false;
   function showView(name) {
+    // Discover is the home/deck pair; showing either keeps you on the Discover tab.
     homeView.hidden = name !== "home";
     deckView.hidden = name !== "deck";
+    var sv = $("savedView"), av = $("appliedView"), cv = $("accountView");
+    if (sv) sv.hidden = true;
+    if (av) av.hidden = true;
+    if (cv) cv.hidden = true;
+    discoverHasDeck = name === "deck";
+    if (typeof setActiveTab === "function") setActiveTab("discover");
   }
 
   function setState(state) {
@@ -616,8 +627,7 @@
   $("sentKeep").addEventListener("click", hideApplicationSent);
   $("sentApplications").addEventListener("click", function () {
     hideApplicationSent();
-    profileTab = "applied";
-    setTimeout(openProfile, 260);
+    setTimeout(function () { showSection("applied"); }, 260);
   });
 
   // =======================================================================
@@ -644,83 +654,87 @@
     }
   }
   function updateSavedBadge(pulse) {
-    var badge = $("savedCount");
-    badge.textContent = String(saved.length);
-    badge.hidden = saved.length === 0;
+    var badge = $("tabSavedBadge");
+    if (badge) { badge.textContent = String(saved.length); badge.hidden = saved.length === 0; }
     if (pulse && hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo("#profileBtn", { scale: 0.86 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)" });
+      gsap.fromTo('.tab[data-tab="saved"]', { scale: 0.9 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)" });
     }
-  }
-  updateSavedBadge(false);
-
-  // =======================================================================
-  //  Profile sheet
-  // =======================================================================
-  function renderProfile() {
-    var list = $("profileList");
-    var items = profileTab === "saved" ? saved : applied;
-    $("tabSaved").classList.toggle("active", profileTab === "saved");
-    $("tabApplied").classList.toggle("active", profileTab === "applied");
-    $("tabSaved").setAttribute("aria-selected", profileTab === "saved");
-    $("tabApplied").setAttribute("aria-selected", profileTab === "applied");
-
-    if (!items.length) {
-      var savedArt =
-        '<div class="empty-art saved-art" aria-hidden="true">' +
-        '<span class="ea-card ea-back"></span><span class="ea-card ea-front"></span>' +
-        '<span class="ea-heart"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 21l-1.4-1.3C5.4 15 2 11.9 2 8.1 2 5.4 4.1 3.3 6.8 3.3c1.5 0 3 .7 3.9 1.9l1.3 1.6 1.3-1.6c.9-1.2 2.4-1.9 3.9-1.9 2.7 0 4.8 2.1 4.8 4.8 0 3.8-3.4 6.9-8.6 11.6L12 21z"/></svg></span>' +
-        "</div>";
-      var appliedArt =
-        '<div class="empty-art applied-art" aria-hidden="true">' +
-        '<svg viewBox="0 0 64 56" width="96" height="84" fill="none">' +
-        '<circle cx="30" cy="30" r="24" fill="var(--accent-tint)"/>' +
-        '<path d="M50 14 24 30M50 14l-7 26-7-11-12-4 26-11z" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '<path d="M8 22c6-1 11-3 15-8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 6"/>' +
-        "</svg></div>";
-      list.innerHTML =
-        '<div class="profile-empty">' +
-        (profileTab === "saved"
-          ? savedArt + "Nothing shortlisted yet.<br/>Swipe right on a job you like — it'll wait for you here."
-          : appliedArt + "No applications yet.<br/>When you tap Apply on a job, we'll keep track of it here.") +
-        "</div>";
-      return;
-    }
-    list.innerHTML = items
-      .map(function (j) {
-        var t = tintFor(j.company || "?");
-        var end =
-          profileTab === "applied"
-            ? '<span class="jr-applied">Applied ✓</span>'
-            : '<a class="jr-apply" href="' + encodeURI(j.redirect_url) + '" target="_blank" rel="noopener" data-url="' + esc(j.redirect_url) + '">Apply</a>';
-        return (
-          '<div class="job-row">' +
-          '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '">' + esc(j.initials) + "</div>" +
-          '<div class="jr-body"><div class="jr-title">' + esc(j.title) + '</div><div class="jr-sub">' + esc(j.company) + " · " + esc(j.salary_display) + "</div></div>" +
-          end +
-          "</div>"
-        );
-      })
-      .join("");
+    if (currentTab === "saved") renderSaved();
   }
 
-  $("profileList").addEventListener("click", function (e) {
+  // =======================================================================
+  //  Sections: Saved · Applications · You
+  // =======================================================================
+  function jobRowHtml(j, isApplied) {
+    var t = tintFor(j.company || "?");
+    var end = isApplied
+      ? '<span class="jr-applied">Applied ✓</span>'
+      : '<a class="jr-apply" href="' + encodeURI(j.redirect_url) + '" target="_blank" rel="noopener" data-url="' + esc(j.redirect_url) + '">Apply</a>';
+    return (
+      '<div class="job-row">' +
+      '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '">' + esc(j.initials) + "</div>" +
+      '<div class="jr-body"><div class="jr-title">' + esc(j.title) + '</div><div class="jr-sub">' + esc(j.company) + " · " + esc(j.salary_display) + "</div></div>" +
+      end + "</div>"
+    );
+  }
+  function renderSaved() {
+    var list = $("savedList");
+    $("savedSub").textContent = saved.length
+      ? saved.length + (saved.length === 1 ? " role" : " roles") + " shortlisted."
+      : "Roles you've shortlisted.";
+    list.innerHTML = saved.length
+      ? saved.map(function (j) { return jobRowHtml(j, false); }).join("")
+      : '<div class="section-empty">Nothing shortlisted yet.<br/>Swipe right on a job you like — it\'ll wait for you here.</div>';
+  }
+  function renderApplied() {
+    var list = $("appliedList");
+    list.innerHTML = applied.length
+      ? applied.map(function (j) { return jobRowHtml(j, true); }).join("")
+      : '<div class="section-empty">No applications yet.<br/>When you tap Apply on a job, we\'ll keep track of it here.</div>';
+  }
+  function renderAccount() {
+    var nm = (profile.name || "").trim();
+    $("acctName").textContent = nm || "Your account";
+    $("acctAvatar").textContent = (nm[0] || "A").toUpperCase();
+    $("acctEmail").textContent = profile.email || "Not signed in";
+    $("acctPostcode").textContent = profile.postcode || "Not set";
+    $("acctPlan").textContent = (CONFIG.paywallActive && !CONFIG.isPaid) ? "Free preview" : "Unlocked";
+  }
+  $("savedList").addEventListener("click", function (e) {
     var a = e.target.closest(".jr-apply");
-    if (a) {
-      var job = saved.find(function (j) { return j.redirect_url === a.dataset.url; });
-      if (job) markApplied(job);
-    }
+    if (!a) return;
+    var job = saved.find(function (j) { return j.redirect_url === a.dataset.url; });
+    if (job) { markApplied(job); toast("Good luck out there 🍀"); }
   });
 
-  $("tabSaved").addEventListener("click", function () { profileTab = "saved"; renderProfile(); });
-  $("tabApplied").addEventListener("click", function () { profileTab = "applied"; renderProfile(); });
-
-  function openProfile() {
-    renderProfile();
-    $("subBadge").textContent = CONFIG.paywallActive && !CONFIG.isPaid ? "Locked" : "Unlocked";
-    openSheet(profileSheet);
+  // ---- Tab bar / section switching ----
+  var currentTab = "discover";
+  function setActiveTab(name) {
+    currentTab = name;
+    document.querySelectorAll("#tabbar .tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-tab") === name);
+    });
   }
-  $("profileBtn").addEventListener("click", openProfile);
-  $("doneMatches").addEventListener("click", openProfile);
+  function showSection(name) {
+    homeView.hidden = true; deckView.hidden = true;
+    $("savedView").hidden = true; $("appliedView").hidden = true; $("accountView").hidden = true;
+    if (name === "discover") {
+      if (discoverHasDeck) { deckView.hidden = false; } else { homeView.hidden = false; }
+    } else if (name === "saved") { renderSaved(); $("savedView").hidden = false; }
+    else if (name === "applied") { renderApplied(); $("appliedView").hidden = false; }
+    else if (name === "account") { renderAccount(); $("accountView").hidden = false; }
+    setActiveTab(name);
+  }
+  document.querySelectorAll("#tabbar .tab").forEach(function (t) {
+    t.addEventListener("click", function () { showSection(t.getAttribute("data-tab")); });
+  });
+  $("doneMatches").addEventListener("click", function () { showSection("saved"); });
+  $("acctNewSearch").addEventListener("click", function () { discoverHasDeck = false; showSection("discover"); showHeroPill(); });
+  $("acctLogout").addEventListener("click", function () {
+    try { localStorage.removeItem("align.onboarded"); } catch (e) {}
+    location.reload();
+  });
+  updateSavedBadge(false);
 
   // =======================================================================
   //  Sheets
