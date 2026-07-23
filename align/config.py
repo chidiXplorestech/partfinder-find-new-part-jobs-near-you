@@ -156,6 +156,33 @@ RANKING_WEIGHTS = RankingWeights()
 
 
 # --------------------------------------------------------------------------- #
+# Environment helpers (tolerant of blank / malformed values)
+# --------------------------------------------------------------------------- #
+def _env_int(name: str, default: int) -> int:
+    """Read an int env var, falling back to ``default`` when unset OR blank/invalid.
+
+    ``os.getenv(name, default)`` only uses the default when the variable is
+    *unset*; a variable set to an empty string (e.g. ``PORT=`` in a .env, or an
+    unresolved ``$PORT``) would otherwise crash ``int("")``. This never does.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Read a boolean env var; blank/unset -> ``default``."""
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+# --------------------------------------------------------------------------- #
 # Runtime settings container
 # --------------------------------------------------------------------------- #
 @dataclass
@@ -167,17 +194,13 @@ class Settings:
     secret_key: str = field(
         default_factory=lambda: os.getenv("SECRET_KEY", "dev-insecure-secret")
     )
-    host: str = field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
-    port: int = field(default_factory=lambda: int(os.getenv("PORT", "5000")))
-    debug: bool = field(
-        default_factory=lambda: os.getenv("FLASK_DEBUG", "0").lower()
-        in {"1", "true", "yes"}
-    )
+    host: str = field(default_factory=lambda: os.getenv("HOST") or "127.0.0.1")
+    port: int = field(default_factory=lambda: _env_int("PORT", 5000))
+    debug: bool = field(default_factory=lambda: _env_bool("FLASK_DEBUG", False))
 
     # --- Paywall --- #
     paywall_enabled: bool = field(
-        default_factory=lambda: os.getenv("PAYWALL_ENABLED", "0").lower()
-        in {"1", "true", "yes"}
+        default_factory=lambda: _env_bool("PAYWALL_ENABLED", False)
     )
     #: GoCardless hosted payment link (https://pay.gocardless.com/...). When set,
     #: this is the primary payment method and the CTA links straight to it.
@@ -195,10 +218,8 @@ class Settings:
         default_factory=lambda: os.getenv("STRIPE_SECRET_KEY", "")
     )
     #: Access price in the smallest currency unit (pence). 100 = £1.00.
-    price_pence: int = field(
-        default_factory=lambda: int(os.getenv("PRICE_PENCE", "100"))
-    )
-    currency: str = field(default_factory=lambda: os.getenv("CURRENCY", "gbp"))
+    price_pence: int = field(default_factory=lambda: _env_int("PRICE_PENCE", 100))
+    currency: str = field(default_factory=lambda: os.getenv("CURRENCY") or "gbp")
     #: Public base URL of the deployed app (used for payment redirect URLs).
     public_base_url: str = field(
         default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
