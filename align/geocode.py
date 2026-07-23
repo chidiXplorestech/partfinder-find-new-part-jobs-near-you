@@ -12,6 +12,7 @@ from typing import Any, Dict
 import requests
 
 POSTCODES_IO = "https://api.postcodes.io/postcodes/{}"
+POSTCODES_IO_REVERSE = "https://api.postcodes.io/postcodes"
 REQUEST_TIMEOUT = 8
 
 _UK_POSTCODE = re.compile(r"^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$", re.IGNORECASE)
@@ -57,4 +58,40 @@ def lookup_postcode(postcode: str) -> Dict[str, Any]:
         "postcode": result.get("postcode", pc.upper()),
         "lat": float(lat),
         "lng": float(lng),
+    }
+
+
+def reverse_geocode(lat: float, lng: float) -> Dict[str, Any]:
+    """Resolve coordinates to the nearest UK postcode (for 'use my location')."""
+    try:
+        lat_f, lng_f = float(lat), float(lng)
+    except (TypeError, ValueError):
+        return {"ok": False, "error": "Invalid coordinates."}
+
+    try:
+        resp = requests.get(
+            POSTCODES_IO_REVERSE,
+            params={"lat": lat_f, "lon": lng_f, "limit": 1},
+            timeout=REQUEST_TIMEOUT,
+        )
+    except requests.RequestException:
+        return {"ok": False, "error": "Couldn't reach the postcode service — try again."}
+
+    if resp.status_code != 200:
+        return {"ok": False, "error": "Location lookup failed — try again."}
+
+    try:
+        results = (resp.json() or {}).get("result") or []
+    except ValueError:
+        return {"ok": False, "error": "Location lookup returned bad data."}
+
+    if not results:
+        return {"ok": False, "error": "No UK postcode found for your location."}
+
+    top = results[0]
+    return {
+        "ok": True,
+        "postcode": top.get("postcode", ""),
+        "lat": float(top.get("latitude", lat_f)),
+        "lng": float(top.get("longitude", lng_f)),
     }

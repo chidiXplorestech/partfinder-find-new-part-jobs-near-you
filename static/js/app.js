@@ -85,6 +85,15 @@
     $("heroPillText").textContent = text;
     $("heroPill").hidden = false;
     if (profile.name) $("greeting").textContent = greetWord() + ", " + profile.name.split(" ")[0];
+    syncLocationUI();
+  }
+
+  // Keep the home postcode field + fine-print in sync with the stored location.
+  function syncLocationUI() {
+    var input = $("homePostcode");
+    if (input && profile.postcode && !input.value) input.value = profile.postcode;
+    var fine = $("finePlace");
+    if (fine) fine.textContent = profile.postcode || "your postcode";
   }
 
   function greetWord() {
@@ -299,7 +308,7 @@
   // =======================================================================
   //  Search
   // =======================================================================
-  form.addEventListener("submit", function (e) { e.preventDefault(); runSearch(); });
+  form.addEventListener("submit", function (e) { e.preventDefault(); resolveThenSearch(); });
 
   function collectQuery() {
     var data = new FormData(form);
@@ -310,6 +319,45 @@
       postcode: profile.postcode || null,
       origin: profile.origin || null,
     };
+  }
+
+  // Server-side postcode lookup, shared by onboarding and home.
+  function geocode(pc) {
+    return fetch("/api/geocode?postcode=" + encodeURIComponent(pc)).then(function (r) { return r.json(); });
+  }
+
+  // Home flow: if the user typed/changed a postcode, resolve it before searching.
+  function resolveThenSearch() {
+    var input = $("homePostcode");
+    var pc = input ? input.value.trim() : "";
+    var msg = $("homePostcodeMsg");
+    if (msg) msg.hidden = true;
+
+    if (!pc) {
+      // No postcode entered — need one to search locally.
+      if (!profile.origin) {
+        if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Enter your postcode to find nearby jobs."; }
+        if (input) input.focus();
+        return;
+      }
+      runSearch(); return;
+    }
+    // Already resolved this exact postcode — search straight away.
+    if (profile.postcode && pc.toUpperCase().replace(/\s/g, "") === profile.postcode.toUpperCase().replace(/\s/g, "") && profile.origin) {
+      runSearch(); return;
+    }
+    var btn = $("findBtn"); var lbl = btn.textContent; btn.disabled = true; btn.textContent = "Finding you…";
+    geocode(pc).then(function (d) {
+      btn.disabled = false; btn.textContent = lbl;
+      if (!d.ok) { if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = d.error || "We couldn't find that postcode."; } return; }
+      profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
+      persist("align.profile", profile);
+      syncLocationUI();
+      runSearch();
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = lbl;
+      if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Network error — try again."; }
+    });
   }
 
   function runSearch() {
@@ -784,6 +832,32 @@
   });
   $("doneMatches").addEventListener("click", function () { showSection("saved"); });
   $("acctNewSearch").addEventListener("click", function () { discoverHasDeck = false; showSection("discover"); showHeroPill(); });
+  $("acctChangePostcode").addEventListener("click", function () {
+    discoverHasDeck = false; showSection("discover"); showHeroPill();
+    var input = $("homePostcode"); if (input) { input.focus(); input.select(); }
+  });
+
+  // Home "use my location" -> browser geolocation -> reverse to nearest postcode area
+  $("homeGeoBtn").addEventListener("click", function () {
+    var msg = $("homePostcodeMsg");
+    if (!navigator.geolocation) { if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Location isn't available on this device."; } return; }
+    if (msg) { msg.hidden = false; msg.className = "ob-hint"; msg.textContent = "Finding your location…"; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fetch("/api/geocode?lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { if (msg) { msg.className = "ob-hint danger"; msg.textContent = d.error || "Couldn't find your postcode — type it instead."; } return; }
+          profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
+          persist("align.profile", profile);
+          var input = $("homePostcode"); if (input) input.value = d.postcode;
+          syncLocationUI();
+          if (msg) { msg.className = "ob-hint ok"; msg.textContent = "Found you near " + d.postcode + " ✓"; }
+        })
+        .catch(function () { if (msg) { msg.className = "ob-hint danger"; msg.textContent = "Network error — type a postcode instead."; } });
+    }, function () {
+      if (msg) { msg.className = "ob-hint danger"; msg.textContent = "Couldn't get location — type a postcode instead."; }
+    });
+  });
   $("acctLogout").addEventListener("click", function () {
     try { localStorage.removeItem("align.onboarded"); } catch (e) {}
     location.reload();

@@ -247,6 +247,16 @@
 
       <form id="searchForm" class="setup" autocomplete="off">
         <fieldset class="field">
+          <legend class="field-label">Where are you?</legend>
+          <div class="input-wrap has-lead">
+            <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+            <input type="text" id="homePostcode" class="ob-input" placeholder="Enter postcode" autocomplete="postal-code" />
+            <button class="input-action" id="homeGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+          <p class="ob-hint" id="homePostcodeMsg" hidden></p>
+        </fieldset>
+
+        <fieldset class="field">
           <legend class="field-label">What kind of work?</legend>
           <div class="chips" role="radiogroup">
             {% for cat in categories %}
@@ -282,7 +292,7 @@
           </div>
         </fieldset>
 
-        <p class="fine-print">Real jobs, updated daily · £{{ '%.2f'|format(min_pay) }}/hr minimum · around NG7 1NZ</p>
+        <p class="fine-print">Real jobs, updated daily · £{{ '%.2f'|format(min_pay) }}/hr minimum · around <span id="finePlace">your postcode</span></p>
 
         {% if not adzuna_configured %}
         <p class="config-warn">Job data isn't connected yet — add your Adzuna keys to <code>.env</code> and restart.</p>
@@ -424,7 +434,7 @@
         </div>
       </div>
       <div class="acct-rows">
-        <div class="acct-row"><span class="ar-k">Location</span><span class="ar-v" id="acctPostcode">—</span></div>
+        <div class="acct-row"><span class="ar-k">Location</span><span class="ar-v"><span id="acctPostcode">—</span> <button type="button" class="ar-change" id="acctChangePostcode">Change</button></span></div>
         <div class="acct-row"><span class="ar-k">Subscription</span><span class="ar-v"><span class="ar-badge" id="acctPlan">Free preview</span></span></div>
         <div class="acct-row"><span class="ar-k">Job refresh</span><span class="ar-v">Every 24 hours</span></div>
       </div>

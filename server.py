@@ -38,7 +38,7 @@ from align.models import SearchQuery
 from align.orchestrator import SearchOrchestrator
 from align.payments import PaymentError, StripeGateway
 from align import accounts
-from align.geocode import lookup_postcode
+from align.geocode import lookup_postcode, reverse_geocode
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -223,8 +223,17 @@ def create_app() -> Flask:
     # -------------------------------------------------------------- #
     @app.route("/api/geocode")
     def api_geocode():
-        """Resolve a UK postcode to coordinates (server-side postcodes.io)."""
-        result = lookup_postcode(request.args.get("postcode", ""))
+        """Resolve a UK postcode -> coords, or coords -> nearest postcode.
+
+        Pass ``?postcode=`` for a forward lookup, or ``?lat=&lng=`` for the
+        reverse lookup used by 'use my location'. Both go server-side to
+        postcodes.io.
+        """
+        lat, lng = request.args.get("lat"), request.args.get("lng")
+        if lat is not None and lng is not None:
+            result = reverse_geocode(lat, lng)
+        else:
+            result = lookup_postcode(request.args.get("postcode", ""))
         return jsonify(result), (200 if result.get("ok") else 400)
 
     @app.route("/api/signup", methods=["POST"])
