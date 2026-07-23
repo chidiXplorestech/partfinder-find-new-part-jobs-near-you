@@ -36,7 +36,9 @@ from align.config import (
 )
 from align.models import SearchQuery
 from align.orchestrator import SearchOrchestrator
-from align.payments import PaymentError, StripeGateway
+from align.payments import GoCardlessGateway, PaymentError, StripeGateway
+from align import accounts
+from align.geocode import lookup_postcode, reverse_geocode
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s"
@@ -53,6 +55,7 @@ def create_app() -> Flask:
     client = AdzunaClient(settings)
     orchestrator = SearchOrchestrator(client)
     payments = StripeGateway(settings)
+    gocardless = GoCardlessGateway(settings)
 
     # -------------------------------------------------------------- #
     # Pages
@@ -124,7 +127,23 @@ def create_app() -> Flask:
                 503,
             )
 
-        query = SearchQuery(category=category, days=days, radius=radius)
+        origin = data.get("origin") or {}
+        try:
+            olat = float(origin["lat"]) if origin.get("lat") is not None else None
+            olng = float(origin["lng"]) if origin.get("lng") is not None else None
+        except (TypeError, ValueError, KeyError):
+            olat = olng = None
+        postcode = str(data.get("postcode") or "").strip() or None
+
+        employment = str(data.get("employment", "part_time")).strip()
+        if employment not in {"part_time", "full_time", "both"}:
+            employment = "part_time"
+
+        query = SearchQuery(
+            category=category, days=days, radius=radius,
+            origin_lat=olat, origin_lng=olng, postcode=postcode,
+            employment=employment,
+        )
         result = orchestrator.search(query)
 
         if result.error and result.is_empty:
@@ -155,6 +174,21 @@ def create_app() -> Flask:
             session["paid"] = True
             return jsonify({"ok": True, "unlocked": True})
 
+        if settings.payment_provider == "gocardless_api":
+            # Verified mode: create a billing request + hosted flow via the API,
+            # remember its id on the session so we can verify the return trip.
+            base = settings.public_base_url or request.host_url.rstrip("/")
+            try:
+                auth_url, br_id = gocardless.create_billing_request_flow(
+                    success_url=f"{base}/pay/success",
+                    exit_url=f"{base}/pay/cancel",
+                )
+            except PaymentError as exc:
+                logger.warning("GoCardless checkout failed: %s", exc)
+                return jsonify({"ok": False, "error": str(exc)}), 502
+            session["gc_br"] = br_id
+            return jsonify({"ok": True, "checkout_url": auth_url})
+
         if settings.payment_provider == "gocardless":
             # Hosted GoCardless link — just hand the browser straight to it.
             return jsonify(
@@ -168,6 +202,29 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": str(exc)}), 502
         return jsonify({"ok": True, "checkout_url": checkout_url})
 
+    @app.route("/api/payment-status")
+    def api_payment_status():
+        """Report whether this session has paid — used by the client to poll.
+
+        Lets any tab detect completion (including the original tab when payment
+        finishes in a new one, since the session cookie is shared). In verified
+        GoCardless mode it re-checks the billing request and flips the session to
+        paid the moment GoCardless confirms.
+        """
+        if session.get("paid"):
+            return jsonify({"ok": True, "paid": True})
+        if settings.payment_provider == "gocardless_api":
+            br_id = session.get("gc_br", "")
+            if br_id and (
+                accounts.is_billing_request_paid(br_id) or gocardless.is_fulfilled(br_id)
+            ):
+                accounts.mark_billing_request_paid(br_id)
+                session["paid"] = True
+                session.pop("gc_br", None)
+                return jsonify({"ok": True, "paid": True})
+            return jsonify({"ok": True, "paid": False, "pending": bool(br_id)})
+        return jsonify({"ok": True, "paid": False})
+
     @app.route("/pay/success")
     def pay_success():
         """Confirm payment, then unlock access for this browser session.
@@ -180,6 +237,22 @@ def create_app() -> Flask:
           verified webhook option.
         """
         provider = settings.payment_provider
+
+        if provider == "gocardless_api":
+            # Verify against GoCardless: the billing request tied to this session
+            # must actually be fulfilled (or already confirmed by a webhook).
+            br_id = session.get("gc_br") or request.args.get("billing_request_id", "")
+            if not br_id:
+                return redirect(url_for("index", pay="failed"))
+            if accounts.is_billing_request_paid(br_id) or gocardless.is_fulfilled(br_id):
+                accounts.mark_billing_request_paid(br_id)
+                session["paid"] = True
+                session.pop("gc_br", None)
+                return redirect(url_for("index", paid="1"))
+            # Confirmation isn't in yet (the webhook may still be arriving). Don't
+            # fail — show a "verifying…" state and let the client poll. Keep
+            # gc_br on the session so the poll can re-check it.
+            return redirect(url_for("index", verifying="1"))
 
         if provider == "gocardless":
             expected = settings.payment_return_token
@@ -204,6 +277,85 @@ def create_app() -> Flask:
     def pay_cancel():
         """User backed out of the payment page."""
         return redirect(url_for("index", pay="cancelled"))
+
+    @app.route("/webhooks/gocardless", methods=["POST"])
+    def gocardless_webhook():
+        """Receive and verify GoCardless webhook events.
+
+        The signature is checked against GOCARDLESS_WEBHOOK_SECRET before any
+        event is trusted; fulfilled billing requests are persisted so a payment
+        counts even if the customer never returns to the browser tab. Always
+        returns 2xx quickly on a valid signature (GoCardless retries otherwise).
+        """
+        secret = settings.gocardless_webhook_secret
+        signature = request.headers.get("Webhook-Signature", "")
+        raw = request.get_data()  # exact bytes, required for the HMAC
+        if not GoCardlessGateway.verify_webhook_signature(raw, signature, secret):
+            return jsonify({"ok": False, "error": "Invalid signature."}), 498
+
+        payload = request.get_json(silent=True) or {}
+        events = payload.get("events") or []
+        for br_id in GoCardlessGateway.fulfilled_billing_request_ids(events):
+            accounts.mark_billing_request_paid(br_id)
+            logger.info("GoCardless webhook: billing request %s fulfilled", br_id)
+        return ("", 204)
+
+    # -------------------------------------------------------------- #
+    # Onboarding: postcode lookup + account creation
+    # -------------------------------------------------------------- #
+    @app.route("/api/geocode")
+    def api_geocode():
+        """Resolve a UK postcode -> coords, or coords -> nearest postcode.
+
+        Pass ``?postcode=`` for a forward lookup, or ``?lat=&lng=`` for the
+        reverse lookup used by 'use my location'. Both go server-side to
+        postcodes.io.
+        """
+        lat, lng = request.args.get("lat"), request.args.get("lng")
+        if lat is not None and lng is not None:
+            result = reverse_geocode(lat, lng)
+        else:
+            result = lookup_postcode(request.args.get("postcode", ""))
+        return jsonify(result), (200 if result.get("ok") else 400)
+
+    @app.route("/api/signup", methods=["POST"])
+    def api_signup():
+        """Create an account (email + strong password, validated server-side)."""
+        data = request.get_json(silent=True) or {}
+        result = accounts.create_user(
+            email=str(data.get("email", "")),
+            password=str(data.get("password", "")),
+            name=str(data.get("name", "")),
+            postcode=str(data.get("postcode", "")),
+        )
+        if not result.get("ok"):
+            return jsonify(result), 400
+        session["uid"] = result["id"]
+        session["name"] = str(data.get("name", ""))
+        return jsonify({"ok": True})
+
+    @app.route("/api/login", methods=["POST"])
+    def api_login():
+        """Sign an existing user in."""
+        data = request.get_json(silent=True) or {}
+        result = accounts.authenticate(
+            str(data.get("email", "")), str(data.get("password", ""))
+        )
+        if not result.get("ok"):
+            return jsonify(result), 401
+        session["uid"] = result["id"]
+        session["name"] = result.get("name", "")
+        return jsonify({"ok": True, "name": result.get("name", "")})
+
+    @app.route("/api/logout", methods=["POST"])
+    def api_logout():
+        """Fully sign the browser out: clear the whole server session.
+
+        Drops the account (``uid``/``name``) and the paywall ``paid`` flag so the
+        next visit starts clean. The client clears its own localStorage too.
+        """
+        session.clear()
+        return jsonify({"ok": True})
 
     @app.route("/healthz")
     def healthz():

@@ -54,16 +54,27 @@
   }
   var saved = load("align.saved", []);
   var applied = load("align.applied", []);
+  // Payment-in-progress marker + poll handles (survive the redirect to GoCardless
+  // and back, and let any tab detect completion). Declared up here so the
+  // payment-return handler below sees the key already assigned.
+  var PAY_AWAIT_KEY = "align.payAwaiting";
+  var payPollTimer = null;
+  var payPollDeadline = 0;
 
   // =======================================================================
   //  Onboarding
   // =======================================================================
+  var profile = load("align.profile", {}); // { name, email, postcode, origin:{lat,lng} }
+
   function startApp() {
     onboarding.hidden = true;
     topbar.hidden = false;
+    $("tabbar").hidden = false;
+    document.body.classList.add("has-tabbar");
     showView("home");
     persist("align.onboarded", true);
     showHeroPill();
+    updateSavedBadge(false);
     if (hasGSAP && !REDUCED_MOTION) {
       gsap.from(".hero-pill", { y: 10, opacity: 0, duration: 0.5, ease: "power3.out" });
       gsap.from(".hero-eyebrow, .hero-title", { y: 14, opacity: 0, duration: 0.5, stagger: 0.07, delay: 0.05, ease: "power3.out" });
@@ -72,41 +83,251 @@
   }
 
   function showHeroPill() {
-    // If the user has run a search this session, echo the real count back;
-    // otherwise show honest evergreen copy (never a fabricated number).
     var lastCount = load("align.lastCount", null);
+    var place = profile.postcode ? " in " + profile.postcode : "";
     var text = (typeof lastCount === "number" && lastCount > 0)
       ? lastCount + " local jobs matched last time"
-      : "Fresh local jobs, updated every day";
+      : "Fresh local jobs" + place + ", updated daily";
     $("heroPillText").textContent = text;
     $("heroPill").hidden = false;
+    if (profile.name) $("greeting").textContent = greetWord() + ", " + profile.name.split(" ")[0];
+    syncLocationUI();
+  }
+
+  // Keep the home postcode field + fine-print in sync with the stored location.
+  function syncLocationUI() {
+    var input = $("homePostcode");
+    if (input && profile.postcode && !input.value) input.value = profile.postcode;
+    var fine = $("finePlace");
+    if (fine) fine.textContent = profile.postcode || "your postcode";
+  }
+
+  function greetWord() {
+    var h = new Date().getHours();
+    return h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  }
+
+  // ---- Onboarding step machine ----
+  var obSteps = [];
+  var obIndex = 0;
+
+  function obShow(i) {
+    obIndex = Math.max(0, Math.min(obSteps.length - 1, i));
+    obSteps.forEach(function (s, n) { s.hidden = n !== obIndex; });
+    var el = obSteps[obIndex];
+    if (hasGSAP && !REDUCED_MOTION) {
+      el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering");
+    }
+    if (el.dataset.step === "splash") runSplash();
+    if (el.dataset.step === "preference" && profile.pref) {
+      var pref = el.querySelector('input[name="obPref"][value="' + profile.pref + '"]');
+      if (pref) pref.checked = true;
+    }
+    updateObProgress();
+    var focusable = el.querySelector("input");
+    if (focusable && el.dataset.step !== "splash") setTimeout(function () { focusable.focus(); }, 260);
+  }
+
+  function updateObProgress() {
+    var prog = $("obProgress"), fill = $("obProgressFill");
+    var step = obSteps[obIndex].dataset.step;
+    // Hide the bar on splash and the final "done" screen; show progress between.
+    if (step === "splash" || step === "done") { prog.classList.remove("show"); return; }
+    prog.classList.add("show");
+    var last = obSteps.length - 1; // index of 'done'
+    fill.style.width = Math.round((obIndex / last) * 100) + "%";
+    // Reflect the current intro slide in its own dash row.
+    var dashes = obSteps[obIndex].querySelectorAll(".ob-dashes span");
+    if (dashes.length) {
+      var slideNum = 0;
+      for (var k = 0; k <= obIndex; k++) if (obSteps[k].dataset.step === "slide") slideNum++;
+      dashes.forEach(function (d, n) { d.classList.toggle("on", n === slideNum - 1); });
+    }
+  }
+  function obNext() { obShow(obIndex + 1); }
+  function obBack() { obShow(obIndex - 1); }
+
+  function runSplash() {
+    var fill = $("splashBarFill");
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(fill, { width: "0%" }, { width: "100%", duration: 4, ease: "none" });
+    } else { fill.style.width = "100%"; }
+    clearTimeout(runSplash._t);
+    runSplash._t = setTimeout(function () { if (obSteps[obIndex].dataset.step === "splash") obNext(); }, 4000);
   }
 
   (function initOnboarding() {
+    // Load any photos the user has dropped into static/img/onboarding/.
+    document.querySelectorAll(".ob-photo[data-img]").forEach(function (ph) {
+      var name = ph.getAttribute("data-img");
+      var img = new Image();
+      img.onload = function () { ph.style.backgroundImage = "url('/static/img/onboarding/" + name + ".jpg')"; };
+      img.src = "/static/img/onboarding/" + name + ".jpg";
+    });
+
     if (load("align.onboarded", false)) { startApp(); return; }
     onboarding.hidden = false;
+    obSteps = Array.prototype.slice.call(document.querySelectorAll("#onboarding .ob-step"));
 
-    var track = $("obTrack");
-    var dots = $("obDots").children;
-    var next = $("obNext");
-    var slideCount = track.children.length;
+    // Generic slide back/next arrows
+    document.querySelectorAll("#onboarding [data-ob-next]").forEach(function (b) { b.addEventListener("click", obNext); });
+    document.querySelectorAll("#onboarding [data-ob-back]").forEach(function (b) { b.addEventListener("click", obBack); });
 
-    function currentSlide() {
-      return Math.round(track.scrollLeft / track.clientWidth);
-    }
-    function syncDots() {
-      var idx = currentSlide();
-      for (var i = 0; i < dots.length; i++) dots[i].classList.toggle("active", i === idx);
-      next.textContent = idx === slideCount - 1 ? "Start swiping" : "Continue";
-    }
-    track.addEventListener("scroll", function () { requestAnimationFrame(syncDots); });
-    next.addEventListener("click", function () {
-      var idx = currentSlide();
-      if (idx >= slideCount - 1) { startApp(); return; }
-      track.scrollTo({ left: (idx + 1) * track.clientWidth, behavior: REDUCED_MOTION ? "auto" : "smooth" });
+    // Swipe left/right to navigate the intro slides.
+    obSteps.forEach(function (step) {
+      if (step.dataset.step !== "slide") return;
+      var x0 = null;
+      step.addEventListener("touchstart", function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+      step.addEventListener("touchend", function (e) {
+        if (x0 === null) return;
+        var dx = e.changedTouches[0].clientX - x0; x0 = null;
+        if (Math.abs(dx) < 50) return;
+        if (dx < 0) obNext(); else obBack();
+      }, { passive: true });
     });
-    $("obSkip").addEventListener("click", startApp);
+
+    wireOnboardingForms();
+    obShow(0);
   })();
+
+  function wireOnboardingForms() {
+    // --- Postcode ---
+    var pcInput = $("obPostcode"), pcMsg = $("obPostcodeMsg");
+    var locInput = $("locInput"), locSuccess = $("locSuccess"), locPlace = $("locPlace");
+    if (profile.postcode) pcInput.value = profile.postcode;
+
+    // Show the explicit "Location found" confirm state (never silently advance).
+    function showLocationFound(d) {
+      profile.postcode = d.postcode || profile.postcode || "";
+      if (d.lat != null && d.lng != null) profile.origin = { lat: d.lat, lng: d.lng };
+      persist("align.profile", profile);
+      locPlace.textContent = d.place || d.postcode || profile.postcode || "your area";
+      locInput.hidden = true;
+      locSuccess.hidden = false;
+      if (hasGSAP && !REDUCED_MOTION) {
+        gsap.fromTo(locSuccess.querySelector(".loc-pin-badge"), { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2)" });
+        gsap.from(locSuccess.querySelectorAll(".ob-form-title, .loc-place, .ob-form-sub, .loc-change"), { y: 12, opacity: 0, duration: 0.4, stagger: 0.06, delay: 0.08, ease: "power3.out" });
+      }
+    }
+
+    $("obGeoBtn").addEventListener("click", function () {
+      if (!navigator.geolocation) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Location isn't available on this device — enter a postcode."; return; }
+      pcMsg.hidden = false; pcMsg.className = "ob-hint"; pcMsg.textContent = "Finding your location…";
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        // Geolocation granted → reverse-geocode to a postcode and confirm explicitly.
+        fetch("/api/geocode?lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude)
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.ok) {
+              // Still succeeded at geolocation — keep the raw coords, confirm anyway.
+              showLocationFound({ lat: pos.coords.latitude, lng: pos.coords.longitude, postcode: "", place: "Your current location" });
+              return;
+            }
+            pcMsg.hidden = true;
+            showLocationFound(d);
+          })
+          .catch(function () {
+            showLocationFound({ lat: pos.coords.latitude, lng: pos.coords.longitude, postcode: "", place: "Your current location" });
+          });
+      }, function () { pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Couldn't get location — enter a postcode instead."; });
+    });
+
+    $("obPostcodeNext").addEventListener("click", function () {
+      var pc = pcInput.value.trim();
+      if (!pc && !profile.origin) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Enter your postcode to find nearby jobs."; return; }
+      var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Finding jobs…";
+      pcMsg.hidden = true;
+      // Already have a resolved location and no new postcode typed — just confirm it.
+      if (!pc) { btn.disabled = false; btn.textContent = lbl; showLocationFound({ postcode: profile.postcode || "", place: profile.postcode || "Your current location" }); return; }
+      fetch("/api/geocode?postcode=" + encodeURIComponent(pc))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          btn.disabled = false; btn.textContent = lbl;
+          if (!d.ok) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = d.error || "We couldn't find that postcode."; return; }
+          showLocationFound(d);
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = lbl; pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Network error — try again."; });
+    });
+
+    // Confirm state: Continue advances; "Use a different postcode" returns to input.
+    $("locContinue").addEventListener("click", function () { obNext(); });
+    $("locChange").addEventListener("click", function () {
+      locSuccess.hidden = true;
+      locInput.hidden = false;
+      pcMsg.hidden = true;
+      setTimeout(function () { pcInput.focus(); pcInput.select(); }, 80);
+    });
+
+    // --- Job preference (part-time / full-time / both) ---
+    $("obPrefNext").addEventListener("click", function () {
+      var checked = document.querySelector('input[name="obPref"]:checked');
+      profile.pref = checked ? checked.value : "part_time";
+      persist("align.profile", profile);
+      obNext();
+    });
+
+    // --- Name ---
+    var nameInput = $("obName");
+    if (profile.name) nameInput.value = profile.name;
+    $("obNameNext").addEventListener("click", function () {
+      profile.name = nameInput.value.trim();
+      persist("align.profile", profile);
+      obNext();
+    });
+
+    // --- Account ---
+    var email = $("obEmail"), pw = $("obPassword"), tick = $("obEmailTick"), acctMsg = $("obAccountMsg");
+    var rules = { len: function (v) { return v.length >= 8; }, num: function (v) { return /\d/.test(v); },
+      special: function (v) { return /[^A-Za-z0-9]/.test(v); }, case: function (v) { return /[a-z]/.test(v) && /[A-Z]/.test(v); } };
+    function emailValid(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v); }
+    function refreshPw() {
+      var v = pw.value, allOk = true;
+      document.querySelectorAll("#pwRules li").forEach(function (li) {
+        var ok = rules[li.getAttribute("data-rule")](v);
+        li.classList.toggle("met", ok); if (!ok) allOk = false;
+      });
+      return allOk;
+    }
+    var confirm = $("obConfirm");
+    email.addEventListener("input", function () { tick.hidden = !emailValid(email.value.trim()); });
+    pw.addEventListener("input", refreshPw);
+    $("obPwToggle").addEventListener("click", function () { pw.type = pw.type === "password" ? "text" : "password"; });
+    $("obConfirmToggle").addEventListener("click", function () { confirm.type = confirm.type === "password" ? "text" : "password"; });
+    $("obLogin").addEventListener("click", function () {
+      acctMsg.hidden = false; acctMsg.className = "ob-hint"; acctMsg.textContent = "Enter your email and password above, then tap Create account to sign in.";
+    });
+    $("obAccountNext").addEventListener("click", function () {
+      var e = email.value.trim(), p = pw.value;
+      if (!emailValid(e)) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Please enter a valid email address."; return; }
+      if (!refreshPw()) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Your password doesn't meet all the rules yet."; return; }
+      if (confirm.value !== p) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Passwords don't match."; return; }
+      var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Creating…"; acctMsg.hidden = true;
+      fetch("/api/signup", { method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: e, password: p, name: profile.name || "" }) })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
+        .then(function (res) {
+          btn.disabled = false; btn.textContent = lbl;
+          if (!res.d.ok) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = res.d.error || "Couldn't create your account."; return; }
+          profile.email = e; persist("align.profile", profile);
+          obNext();
+        })
+        .catch(function () { btn.disabled = false; btn.textContent = lbl; acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Network error — try again."; });
+    });
+
+    // --- Offer / paywall ---
+    $("obOfferNext").addEventListener("click", function () {
+      if (CONFIG.paywallActive && !CONFIG.isPaid) {
+        var btn = this; btn.disabled = true; btn.textContent = "One moment…";
+        fetch("/api/checkout", { method: "POST" }).then(function (r) { return r.json(); }).then(function (p) {
+          if (p.checkout_url) { markPayAwaiting(); window.location.href = p.checkout_url; return; }
+          btn.disabled = false; btn.textContent = "Get started for £1"; obNext();
+        }).catch(function () { btn.disabled = false; btn.textContent = "Get started for £1"; obNext(); });
+      } else { obNext(); }
+    });
+
+    // --- Done ---
+    $("obStart").addEventListener("click", startApp);
+  }
 
   // ---- Greeting ----------------------------------------------------------
   (function greet() {
@@ -117,9 +338,17 @@
   // =======================================================================
   //  View / state management
   // =======================================================================
+  var discoverHasDeck = false;
   function showView(name) {
+    // Discover is the home/deck pair; showing either keeps you on the Discover tab.
     homeView.hidden = name !== "home";
     deckView.hidden = name !== "deck";
+    var sv = $("savedView"), av = $("appliedView"), cv = $("accountView");
+    if (sv) sv.hidden = true;
+    if (av) av.hidden = true;
+    if (cv) cv.hidden = true;
+    discoverHasDeck = name === "deck";
+    if (typeof setActiveTab === "function") setActiveTab("discover");
   }
 
   function setState(state) {
@@ -135,7 +364,7 @@
   // =======================================================================
   //  Search
   // =======================================================================
-  form.addEventListener("submit", function (e) { e.preventDefault(); runSearch(); });
+  form.addEventListener("submit", function (e) { e.preventDefault(); resolveThenSearch(); });
 
   function collectQuery() {
     var data = new FormData(form);
@@ -143,7 +372,49 @@
       category: data.get("category"),
       days: data.getAll("days"),
       radius: parseInt(data.get("radius"), 10) || 5,
+      postcode: profile.postcode || null,
+      origin: profile.origin || null,
+      employment: profile.pref || "part_time",
     };
+  }
+
+  // Server-side postcode lookup, shared by onboarding and home.
+  function geocode(pc) {
+    return fetch("/api/geocode?postcode=" + encodeURIComponent(pc)).then(function (r) { return r.json(); });
+  }
+
+  // Home flow: if the user typed/changed a postcode, resolve it before searching.
+  function resolveThenSearch() {
+    var input = $("homePostcode");
+    var pc = input ? input.value.trim() : "";
+    var msg = $("homePostcodeMsg");
+    if (msg) msg.hidden = true;
+
+    if (!pc) {
+      // No postcode entered — need one to search locally.
+      if (!profile.origin) {
+        if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Enter your postcode to find nearby jobs."; }
+        if (input) input.focus();
+        return;
+      }
+      runSearch(); return;
+    }
+    // Already resolved this exact postcode — search straight away.
+    if (profile.postcode && pc.toUpperCase().replace(/\s/g, "") === profile.postcode.toUpperCase().replace(/\s/g, "") && profile.origin) {
+      runSearch(); return;
+    }
+    var btn = $("findBtn"); var lbl = btn.textContent; btn.disabled = true; btn.textContent = "Finding you…";
+    geocode(pc).then(function (d) {
+      btn.disabled = false; btn.textContent = lbl;
+      if (!d.ok) { if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = d.error || "We couldn't find that postcode."; } return; }
+      profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
+      persist("align.profile", profile);
+      syncLocationUI();
+      runSearch();
+    }).catch(function () {
+      btn.disabled = false; btn.textContent = lbl;
+      if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Network error — try again."; }
+    });
   }
 
   function runSearch() {
@@ -224,14 +495,14 @@
 
   function matchRing(pct) {
     var r = 19, c = 2 * Math.PI * r;
-    var off = c * (1 - pct / 100);
+    // Start empty; the ring is drawn to its target when the card enters (animateRing).
     return (
-      '<div class="match-ring" title="Match score" aria-label="' + pct + '% match">' +
+      '<div class="match-ring" title="Match score" aria-label="' + pct + '% match" data-pct="' + pct + '">' +
       '<svg width="46" height="46" viewBox="0 0 46 46" aria-hidden="true">' +
       '<circle class="ring-bg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4"/>' +
-      '<circle class="ring-fg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4" stroke-dasharray="' + c + '" stroke-dashoffset="' + off + '"/>' +
+      '<circle class="ring-fg" cx="23" cy="23" r="' + r + '" fill="none" stroke-width="4" stroke-dasharray="' + c + '" stroke-dashoffset="' + c + '"/>' +
       "</svg>" +
-      '<span class="ring-label">' + pct + "</span>" +
+      '<span class="ring-label" data-count="' + pct + '">0</span>' +
       "</div>"
     );
   }
@@ -294,7 +565,28 @@
     if (top && hasGSAP && !REDUCED_MOTION) {
       gsap.from(top, { y: 26, opacity: 0, duration: 0.4, ease: "power3.out" });
     }
+    if (top) animateRing(top);
     enableDrag();
+  }
+
+  // Draw the match ring + count the % up when a card becomes active.
+  function animateRing(card) {
+    var ring = card.querySelector(".match-ring");
+    if (!ring || ring._drawn) return;
+    ring._drawn = true;
+    var fg = ring.querySelector(".ring-fg");
+    var label = ring.querySelector(".ring-label");
+    var pct = parseInt(ring.getAttribute("data-pct"), 10) || 0;
+    var r = 19, c = 2 * Math.PI * r, off = c * (1 - pct / 100);
+    if (!hasGSAP || REDUCED_MOTION) {
+      fg.setAttribute("stroke-dashoffset", off);
+      label.textContent = pct;
+      return;
+    }
+    gsap.to(fg, { attr: { "stroke-dashoffset": off }, duration: 0.9, ease: "power2.out", delay: 0.15 });
+    var counter = { v: 0 };
+    gsap.to(counter, { v: pct, duration: 0.9, ease: "power2.out", delay: 0.15,
+      onUpdate: function () { label.textContent = Math.round(counter.v); } });
   }
 
   function positionCards() {
@@ -393,6 +685,8 @@
       if (idx >= 0) deck.insertBefore(buildCard(jobs[idx]), deck.firstChild);
     }
     positionCards();
+    var top = topCard();
+    if (top) animateRing(top);
     enableDrag();
     updateCount();
   }
@@ -492,8 +786,7 @@
   $("sentKeep").addEventListener("click", hideApplicationSent);
   $("sentApplications").addEventListener("click", function () {
     hideApplicationSent();
-    profileTab = "applied";
-    setTimeout(openProfile, 260);
+    setTimeout(function () { showSection("applied"); }, 260);
   });
 
   // =======================================================================
@@ -520,83 +813,163 @@
     }
   }
   function updateSavedBadge(pulse) {
-    var badge = $("savedCount");
-    badge.textContent = String(saved.length);
-    badge.hidden = saved.length === 0;
+    var badge = $("tabSavedBadge");
+    if (badge) { badge.textContent = String(saved.length); badge.hidden = saved.length === 0; }
     if (pulse && hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo("#profileBtn", { scale: 0.86 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)" });
+      gsap.fromTo('.tab[data-tab="saved"]', { scale: 0.9 }, { scale: 1, duration: 0.4, ease: "back.out(2.5)" });
     }
+    if (currentTab === "saved") renderSaved();
   }
+
+  // =======================================================================
+  //  Sections: Saved · Applications · You
+  // =======================================================================
+  function jobRowHtml(j, isApplied) {
+    var t = tintFor(j.company || "?");
+    var end = isApplied
+      ? '<span class="jr-applied">Applied ✓</span>'
+      : '<a class="jr-apply" href="' + encodeURI(j.redirect_url) + '" target="_blank" rel="noopener" data-url="' + esc(j.redirect_url) + '">Apply</a>';
+    return (
+      '<div class="job-row">' +
+      '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '">' + esc(j.initials) + "</div>" +
+      '<div class="jr-body"><div class="jr-title">' + esc(j.title) + '</div><div class="jr-sub">' + esc(j.company) + " · " + esc(j.salary_display) + "</div></div>" +
+      end + "</div>"
+    );
+  }
+  function renderSaved() {
+    var list = $("savedList");
+    $("savedSub").textContent = saved.length
+      ? saved.length + (saved.length === 1 ? " role" : " roles") + " shortlisted."
+      : "Roles you've shortlisted.";
+    list.innerHTML = saved.length
+      ? saved.map(function (j) { return jobRowHtml(j, false); }).join("")
+      : '<div class="section-empty">Nothing shortlisted yet.<br/>Swipe right on a job you like — it\'ll wait for you here.</div>';
+  }
+  function renderApplied() {
+    var list = $("appliedList");
+    list.innerHTML = applied.length
+      ? applied.map(function (j) { return jobRowHtml(j, true); }).join("")
+      : '<div class="section-empty">No applications yet.<br/>When you tap Apply on a job, we\'ll keep track of it here.</div>';
+  }
+  function renderAccount() {
+    var nm = (profile.name || "").trim();
+    $("acctName").textContent = nm || "Your account";
+    $("acctAvatar").textContent = (nm[0] || "A").toUpperCase();
+    $("acctEmail").textContent = profile.email || "Not signed in";
+    $("acctPostcode").textContent = profile.postcode || "Not set";
+    $("acctPlan").textContent = (CONFIG.paywallActive && !CONFIG.isPaid) ? "Free preview" : "Unlocked";
+  }
+  $("savedList").addEventListener("click", function (e) {
+    var a = e.target.closest(".jr-apply");
+    if (!a) return;
+    var job = saved.find(function (j) { return j.redirect_url === a.dataset.url; });
+    if (job) { markApplied(job); toast("Good luck out there 🍀"); }
+  });
+
+  // ---- Tab bar / section switching ----
+  var currentTab = "discover";
+  function setActiveTab(name) {
+    currentTab = name;
+    document.querySelectorAll("#tabbar .tab").forEach(function (t) {
+      t.classList.toggle("active", t.getAttribute("data-tab") === name);
+    });
+  }
+  function showSection(name) {
+    homeView.hidden = true; deckView.hidden = true;
+    $("savedView").hidden = true; $("appliedView").hidden = true; $("accountView").hidden = true;
+    if (name === "discover") {
+      if (discoverHasDeck) { deckView.hidden = false; } else { homeView.hidden = false; }
+    } else if (name === "saved") { renderSaved(); $("savedView").hidden = false; }
+    else if (name === "applied") { renderApplied(); $("appliedView").hidden = false; }
+    else if (name === "account") { renderAccount(); $("accountView").hidden = false; }
+    setActiveTab(name);
+  }
+  document.querySelectorAll("#tabbar .tab").forEach(function (t) {
+    t.addEventListener("click", function () { showSection(t.getAttribute("data-tab")); });
+  });
+  $("doneMatches").addEventListener("click", function () { showSection("saved"); });
+  $("acctNewSearch").addEventListener("click", function () { discoverHasDeck = false; showSection("discover"); showHeroPill(); });
+  $("acctChangePostcode").addEventListener("click", function () {
+    discoverHasDeck = false; showSection("discover"); showHeroPill();
+    var input = $("homePostcode"); if (input) { input.focus(); input.select(); }
+  });
+
+  // Home "use my location" -> browser geolocation -> reverse to nearest postcode area
+  $("homeGeoBtn").addEventListener("click", function () {
+    var msg = $("homePostcodeMsg");
+    if (!navigator.geolocation) { if (msg) { msg.hidden = false; msg.className = "ob-hint danger"; msg.textContent = "Location isn't available on this device."; } return; }
+    if (msg) { msg.hidden = false; msg.className = "ob-hint"; msg.textContent = "Finding your location…"; }
+    navigator.geolocation.getCurrentPosition(function (pos) {
+      fetch("/api/geocode?lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude)
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { if (msg) { msg.className = "ob-hint danger"; msg.textContent = d.error || "Couldn't find your postcode — type it instead."; } return; }
+          profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
+          persist("align.profile", profile);
+          var input = $("homePostcode"); if (input) input.value = d.postcode;
+          syncLocationUI();
+          if (msg) { msg.className = "ob-hint ok"; msg.textContent = "Found you near " + d.postcode + " ✓"; }
+        })
+        .catch(function () { if (msg) { msg.className = "ob-hint danger"; msg.textContent = "Network error — type a postcode instead."; } });
+    }, function () {
+      if (msg) { msg.className = "ob-hint danger"; msg.textContent = "Couldn't get location — type a postcode instead."; }
+    });
+  });
+  $("acctLogout").addEventListener("click", function () {
+    var btn = this;
+    btn.disabled = true;
+    // Clear every trace of the session locally, then clear the server session,
+    // then reload straight back into onboarding — a full, clean sign-out.
+    function finish() {
+      try {
+        ["align.onboarded", "align.profile", "align.saved", "align.applied",
+         "align.notif", "align.lastCount"].forEach(function (k) {
+          localStorage.removeItem(k);
+        });
+      } catch (e) {}
+      location.reload();
+    }
+    fetch("/api/logout", { method: "POST" }).then(finish).catch(finish);
+  });
   updateSavedBadge(false);
 
   // =======================================================================
-  //  Profile sheet
+  //  Notifications (real browser-permission trigger)
   // =======================================================================
-  function renderProfile() {
-    var list = $("profileList");
-    var items = profileTab === "saved" ? saved : applied;
-    $("tabSaved").classList.toggle("active", profileTab === "saved");
-    $("tabApplied").classList.toggle("active", profileTab === "applied");
-    $("tabSaved").setAttribute("aria-selected", profileTab === "saved");
-    $("tabApplied").setAttribute("aria-selected", profileTab === "applied");
-
-    if (!items.length) {
-      var savedArt =
-        '<div class="empty-art saved-art" aria-hidden="true">' +
-        '<span class="ea-card ea-back"></span><span class="ea-card ea-front"></span>' +
-        '<span class="ea-heart"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M12 21l-1.4-1.3C5.4 15 2 11.9 2 8.1 2 5.4 4.1 3.3 6.8 3.3c1.5 0 3 .7 3.9 1.9l1.3 1.6 1.3-1.6c.9-1.2 2.4-1.9 3.9-1.9 2.7 0 4.8 2.1 4.8 4.8 0 3.8-3.4 6.9-8.6 11.6L12 21z"/></svg></span>' +
-        "</div>";
-      var appliedArt =
-        '<div class="empty-art applied-art" aria-hidden="true">' +
-        '<svg viewBox="0 0 64 56" width="96" height="84" fill="none">' +
-        '<circle cx="30" cy="30" r="24" fill="var(--accent-tint)"/>' +
-        '<path d="M50 14 24 30M50 14l-7 26-7-11-12-4 26-11z" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>' +
-        '<path d="M8 22c6-1 11-3 15-8" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-dasharray="1 6"/>' +
-        "</svg></div>";
-      list.innerHTML =
-        '<div class="profile-empty">' +
-        (profileTab === "saved"
-          ? savedArt + "Nothing shortlisted yet.<br/>Swipe right on a job you like — it'll wait for you here."
-          : appliedArt + "No applications yet.<br/>When you tap Apply on a job, we'll keep track of it here.") +
-        "</div>";
-      return;
-    }
-    list.innerHTML = items
-      .map(function (j) {
-        var t = tintFor(j.company || "?");
-        var end =
-          profileTab === "applied"
-            ? '<span class="jr-applied">Applied ✓</span>'
-            : '<a class="jr-apply" href="' + encodeURI(j.redirect_url) + '" target="_blank" rel="noopener" data-url="' + esc(j.redirect_url) + '">Apply</a>';
-        return (
-          '<div class="job-row">' +
-          '<div class="logo-tile" style="background:' + t[0] + ";color:" + t[1] + '">' + esc(j.initials) + "</div>" +
-          '<div class="jr-body"><div class="jr-title">' + esc(j.title) + '</div><div class="jr-sub">' + esc(j.company) + " · " + esc(j.salary_display) + "</div></div>" +
-          end +
-          "</div>"
-        );
-      })
-      .join("");
+  function notifsOn() {
+    return load("align.notif", false) ||
+      (typeof Notification !== "undefined" && Notification.permission === "granted");
   }
-
-  $("profileList").addEventListener("click", function (e) {
-    var a = e.target.closest(".jr-apply");
-    if (a) {
-      var job = saved.find(function (j) { return j.redirect_url === a.dataset.url; });
-      if (job) markApplied(job);
-    }
+  function renderNotifs() {
+    var on = notifsOn();
+    var toggle = $("notifToggle");
+    toggle.textContent = on ? "On" : "Enable";
+    toggle.classList.toggle("on", on);
+    $("notifAlertD").textContent = on
+      ? "You're all set — we'll ping you when fresh jobs drop near you."
+      : "Turn on alerts and we'll ping you when fresh jobs drop near you.";
+    $("notifList").innerHTML =
+      '<div class="notif-empty">No alerts yet.<br/>New matches near ' +
+      esc(profile.postcode || "you") + " will show up here.</div>";
+  }
+  $("bellBtn").addEventListener("click", function () {
+    renderNotifs();
+    openSheet($("notifSheet"));
   });
-
-  $("tabSaved").addEventListener("click", function () { profileTab = "saved"; renderProfile(); });
-  $("tabApplied").addEventListener("click", function () { profileTab = "applied"; renderProfile(); });
-
-  function openProfile() {
-    renderProfile();
-    $("subBadge").textContent = CONFIG.paywallActive && !CONFIG.isPaid ? "Locked" : "Unlocked";
-    openSheet(profileSheet);
-  }
-  $("profileBtn").addEventListener("click", openProfile);
-  $("doneMatches").addEventListener("click", openProfile);
+  $("notifToggle").addEventListener("click", function () {
+    if (typeof Notification === "undefined") { persist("align.notif", true); renderNotifs(); toast("Job alerts on"); return; }
+    if (Notification.permission === "granted") { persist("align.notif", true); renderNotifs(); toast("Job alerts already on"); return; }
+    Notification.requestPermission().then(function (p) {
+      if (p === "granted") {
+        persist("align.notif", true);
+        toast('Job alerts on <span class="tick">✓</span>');
+        try { new Notification("Align", { body: "You'll be notified when fresh jobs drop near you." }); } catch (e) {}
+      } else {
+        toast("Allow notifications in your browser to enable alerts.");
+      }
+      renderNotifs();
+    });
+  });
 
   // =======================================================================
   //  Sheets
@@ -604,9 +977,11 @@
   function openSheet(sheet) {
     sheet.hidden = false;
     var panel = sheet.querySelector(".sheet-panel");
+    var backdrop = sheet.querySelector(".sheet-backdrop");
     if (hasGSAP && !REDUCED_MOTION) {
-      gsap.fromTo(sheet.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
-      gsap.fromTo(panel, { y: 60, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" });
+      if (backdrop) gsap.fromTo(backdrop, { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      var fromY = panel.classList.contains("sheet-full") ? 20 : 60;
+      gsap.fromTo(panel, { y: fromY, opacity: 0 }, { y: 0, opacity: 1, duration: 0.42, ease: "power3.out" });
     }
   }
   function closeSheet(sheet) {
@@ -649,7 +1024,7 @@
       .then(function (r) { return r.json(); })
       .then(function (payload) {
         if (payload.unlocked) { closePaywall(); runSearch(); return; }
-        if (payload.ok && payload.checkout_url) { window.location.href = payload.checkout_url; return; }
+        if (payload.ok && payload.checkout_url) { markPayAwaiting(); window.location.href = payload.checkout_url; return; }
         throw new Error(payload.error || "Checkout unavailable.");
       })
       .catch(function (err) {
@@ -664,15 +1039,126 @@
     var params = new URLSearchParams(window.location.search);
     if (params.get("paid") === "1") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
       CONFIG.isPaid = true;
+      // Payment succeeded → drop the user straight into the app rather than
+      // restarting onboarding (they already created their account pre-paywall).
+      if (!onboarding.hidden) startApp();
       toast('Align unlocked <span class="tick">✓</span> Welcome in.');
+    } else if (params.get("verifying") === "1") {
+      // Returned from GoCardless but confirmation is still in flight — show the
+      // verifying overlay and poll until it clears.
+      history.replaceState({}, "", window.location.pathname);
+      showPaymentVerifying();
     } else if (params.get("pay") === "failed") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
       toast("Payment didn't go through — you can try again anytime.");
     } else if (params.get("pay") === "cancelled") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
+    } else if (isPayAwaiting() && !CONFIG.isPaid) {
+      // A payment was started earlier (maybe in another tab). Quietly check
+      // whether it has since cleared, and enter the app if so.
+      pollOnce().then(function (paid) { if (paid) enterAfterUnlock(); });
     }
   })();
+
+  // =======================================================================
+  //  Payment verification — poll so ANY tab lands back in the app, whether
+  //  payment finished here or in a new tab (the session cookie is shared).
+  //  (PAY_AWAIT_KEY / poll handles are declared in the state section above.)
+  // =======================================================================
+  function markPayAwaiting() { persist(PAY_AWAIT_KEY, Date.now()); }
+  function clearPayAwaiting() { try { localStorage.removeItem(PAY_AWAIT_KEY); } catch (e) {} }
+  function isPayAwaiting() { return !!load(PAY_AWAIT_KEY, 0); }
+
+  function enterAfterUnlock() {
+    CONFIG.isPaid = true;
+    clearPayAwaiting();
+    stopPaymentPoll();
+    if (onboarding && !onboarding.hidden) startApp();
+    else closePaywall();
+  }
+
+  function pollOnce() {
+    return fetch("/api/payment-status", { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { return !!(d && d.paid); })
+      .catch(function () { return false; });
+  }
+
+  function stopPaymentPoll() { clearTimeout(payPollTimer); payPollTimer = null; }
+
+  function startPaymentPoll() {
+    stopPaymentPoll();
+    payPollDeadline = Date.now() + 4 * 60 * 1000; // surface a fallback after ~4 min
+    (function tick() {
+      pollOnce().then(function (paid) {
+        if (paid) {
+          if (!$("payVerifyOverlay").hidden) finishVerifyOverlay();
+          else enterAfterUnlock();
+          return;
+        }
+        if (Date.now() > payPollDeadline) {
+          $("verifyTitle").textContent = "Still processing…";
+          $("verifyCopy").textContent =
+            "Your payment is taking a little longer to confirm. Keep this open and we'll unlock automatically, or close and try again.";
+          $("verifyDismiss").hidden = false;
+          payPollTimer = setTimeout(tick, 15000); // slow background poll
+          return;
+        }
+        payPollTimer = setTimeout(tick, 2500);
+      });
+    })();
+  }
+
+  function showPaymentVerifying() {
+    var ov = $("payVerifyOverlay");
+    var card = ov.querySelector(".verify-card");
+    if (card) card.classList.remove("done");
+    $("verifyTitle").textContent = "Verifying your payment…";
+    $("verifyCopy").textContent =
+      "Hang tight — we're confirming your £1 unlock with GoCardless. This only takes a moment.";
+    $("verifyDismiss").hidden = true;
+    ov.hidden = false;
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(ov.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      gsap.fromTo(card, { y: 20, scale: 0.96, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
+    }
+    startPaymentPoll();
+  }
+
+  function finishVerifyOverlay() {
+    stopPaymentPoll();
+    var ov = $("payVerifyOverlay");
+    var card = ov.querySelector(".verify-card");
+    if (card) card.classList.add("done");
+    $("verifyTitle").textContent = "Payment confirmed";
+    $("verifyCopy").textContent = "You're all set — welcome to Align.";
+    $("verifyDismiss").hidden = true;
+    setTimeout(function () {
+      ov.hidden = true;
+      enterAfterUnlock();
+      toast('Align unlocked <span class="tick">✓</span> Welcome in.');
+    }, 750);
+  }
+
+  $("verifyDismiss").addEventListener("click", function () {
+    $("payVerifyOverlay").hidden = true;
+    stopPaymentPoll();
+  });
+
+  // If payment completes in another tab, catch up when this tab regains focus.
+  function focusRecheck() {
+    if (isPayAwaiting() && !CONFIG.isPaid) {
+      pollOnce().then(function (paid) { if (paid) enterAfterUnlock(); });
+    }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") focusRecheck();
+  });
+  window.addEventListener("focus", focusRecheck);
 
   // =======================================================================
   //  Controls

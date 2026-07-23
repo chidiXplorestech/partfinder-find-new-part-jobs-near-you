@@ -46,13 +46,18 @@ def haversine_miles(
     return 2 * radius_miles * math.asin(min(1.0, math.sqrt(a)))
 
 
-def compute_distance(job: Job) -> Optional[float]:
-    """Return the job's distance from the search origin, or ``None``."""
+def compute_distance(
+    job: Job, origin: Optional[tuple] = None
+) -> Optional[float]:
+    """Return the job's distance from the search origin, or ``None``.
+
+    ``origin`` is an optional ``(lat, lng)`` pair; when omitted the app's
+    default origin (NG7 1NZ) is used, preserving backward compatibility.
+    """
     if job.latitude is None or job.longitude is None:
         return None
-    return haversine_miles(
-        config.ORIGIN_LAT, config.ORIGIN_LNG, job.latitude, job.longitude
-    )
+    lat0, lng0 = origin if origin else (config.ORIGIN_LAT, config.ORIGIN_LNG)
+    return haversine_miles(lat0, lng0, job.latitude, job.longitude)
 
 
 # --------------------------------------------------------------------------- #
@@ -65,10 +70,21 @@ def _haystack(job: Job) -> str:
     ).lower()
 
 
-def is_seniority_rejected(job: Job) -> bool:
-    """True when the role looks senior / full-time and should be dropped."""
+def is_seniority_rejected(job: Job, employment: str = "part_time") -> bool:
+    """True when the role should be dropped for the given employment preference.
+
+    Senior/leadership roles are always rejected. Full-time roles are rejected
+    only when the user asked for part-time work (the default); the ``full_time``
+    and ``both`` preferences keep them.
+    """
     text = _haystack(job)
-    return any(token in text for token in config.REJECT_KEYWORDS)
+    if any(token in text for token in config.SENIORITY_KEYWORDS):
+        return True
+    if employment == "part_time" and any(
+        token in text for token in config.FULLTIME_KEYWORDS
+    ):
+        return True
+    return False
 
 
 def passes_pay_floor(job: Job) -> bool:
@@ -112,24 +128,31 @@ def has_valid_apply_link(job: Job) -> bool:
 # --------------------------------------------------------------------------- #
 # Pipeline entry point
 # --------------------------------------------------------------------------- #
-def filter_jobs(jobs: List[Job], radius_miles: int) -> List[Job]:
+def filter_jobs(
+    jobs: List[Job],
+    radius_miles: int,
+    origin: Optional[tuple] = None,
+    employment: str = "part_time",
+) -> List[Job]:
     """Apply all hard rules and return the surviving jobs.
 
     Distance is computed and cached on each job as a side effect so downstream
-    ranking can reuse it.
+    ranking can reuse it. ``origin`` is an optional ``(lat, lng)`` pair.
+    ``employment`` is the user's preference: ``part_time`` (default),
+    ``full_time`` or ``both``.
     """
     survivors: List[Job] = []
     seen_urls = set()
 
     for job in jobs:
         # Cache distance for ranking regardless of the outcome.
-        job.distance_miles = compute_distance(job)
+        job.distance_miles = compute_distance(job, origin)
 
         if not has_valid_apply_link(job):
             continue
         if job.redirect_url in seen_urls:
             continue  # de-duplicate identical listings
-        if is_seniority_rejected(job):
+        if is_seniority_rejected(job, employment):
             continue
         if not passes_pay_floor(job):
             continue

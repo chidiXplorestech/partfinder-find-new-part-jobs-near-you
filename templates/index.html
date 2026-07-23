@@ -14,87 +14,271 @@
 <body>
   <div class="app" id="app">
 
-    <!-- ================= ONBOARDING ================= -->
+    <!-- ================= ONBOARDING (full flow) ================= -->
     <section id="onboarding" class="onboarding" hidden aria-label="Welcome to Align">
-      <button class="ob-skip" id="obSkip">Skip</button>
 
-      <div class="ob-track" id="obTrack">
-        <!-- Slide 1 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-pile">
-              <div class="mini-card pile-2"></div>
-              <div class="mini-card pile-1"></div>
-              <div class="art-chaos">
-                <div class="chaos-line" style="width:82%"></div>
-                <div class="chaos-line" style="width:64%"></div>
-                <div class="chaos-line" style="width:74%"></div>
-                <div class="chaos-line dim" style="width:58%"></div>
-                <div class="chaos-line dim" style="width:70%"></div>
-                <div class="chaos-fade"></div>
-              </div>
-              <div class="pile-badge">1,248</div>
-            </div>
-          </div>
-          <h1 class="ob-title">Stop scrolling through endless job boards.</h1>
-          <p class="ob-sub">Thousands of listings. Endless filters. Nobody has time for that.</p>
+      <div class="ob-progress" id="obProgress" aria-hidden="true"><span id="obProgressFill"></span></div>
+
+      <!-- 0 · SPLASH -->
+      <div class="ob-step ob-splash" data-step="splash">
+        <div class="splash-glow" aria-hidden="true"></div>
+        <div class="splash-logo">align</div>
+        <p class="splash-tag">Great jobs.<br />Real people.</p>
+        <div class="splash-bar" aria-hidden="true"><span id="splashBarFill"></span></div>
+      </div>
+
+      <!-- 1–3 · INTRO SLIDES -->
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide1">
+          <div class="ob-photo-fallback grad-a" aria-hidden="true"></div>
         </div>
-
-        <!-- Slide 2 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-swipe">
-              <div class="swipe-cue pass">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-              </div>
-              <div class="swipe-cue like">
-                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
-              </div>
-              <div class="mini-card swipe-card">
-                <div class="mc-logo"></div>
-                <div class="mc-line w60"></div>
-                <div class="mc-line w40 dim"></div>
-                <div class="mc-pill"></div>
-              </div>
-            </div>
-          </div>
-          <h1 class="ob-title">Swipe through real jobs in seconds.</h1>
-          <p class="ob-sub">Right to shortlist, left to pass. One job at a time, always live.</p>
+        <div class="ob-slide-body">
+          <h1 class="ob-title">Stop scrolling through endless <span class="hl">job boards.</span></h1>
+          <p class="ob-sub">Outdated listings.<br />Too much noise.<br />Not enough real opportunities.</p>
         </div>
-
-        <!-- Slide 3 -->
-        <div class="ob-slide">
-          <div class="ob-art" aria-hidden="true">
-            <div class="art-apply">
-              <div class="mini-card solo">
-                <div class="mc-logo"></div>
-                <div class="mc-line w60"></div>
-                <div class="mc-line w40 dim"></div>
-                <div class="mc-apply"></div>
-              </div>
-              <svg class="plane" viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-              <svg class="plane-trail" viewBox="0 0 60 40" width="60" height="40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M2 38c14-2 26-8 34-18" stroke-dasharray="1 8"/></svg>
-            </div>
-          </div>
-          <h1 class="ob-title">See one you like? One tap to apply.</h1>
-          <p class="ob-sub">We send you straight to the employer — no middlemen, no extra steps.</p>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
         </div>
       </div>
 
-      <div class="ob-footer">
-        <div class="ob-dots" id="obDots" aria-hidden="true">
-          <span class="dot active"></span><span class="dot"></span><span class="dot"></span>
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide2">
+          <div class="ob-photo-fallback grad-b" aria-hidden="true"></div>
         </div>
-        <button class="btn-primary" id="obNext">Continue</button>
+        <div class="ob-slide-body">
+          <h1 class="ob-title"><span class="hl">Swipe</span> through real jobs in seconds.</h1>
+          <p class="ob-sub">Fast. Fun. Simple.<br />Jobs that actually fit you.</p>
+        </div>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
       </div>
+
+      <div class="ob-step ob-slide" data-step="slide" hidden>
+        <div class="ob-photo" data-img="slide3">
+          <div class="ob-photo-fallback grad-c" aria-hidden="true"></div>
+        </div>
+        <div class="ob-slide-body">
+          <h1 class="ob-title">See one you like? <span class="hl">One tap</span> to apply.</h1>
+          <p class="ob-sub">No long forms. No CV uploads.<br />Just one tap and you're in.</p>
+        </div>
+        <div class="ob-slide-nav">
+          <button class="nav-circle" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+          <div class="ob-dashes"><span></span><span></span><span></span></div>
+          <button class="nav-circle solid" data-ob-next aria-label="Next"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></button>
+        </div>
+      </div>
+
+      <!-- 4 · POSTCODE -->
+      <div class="ob-step ob-form" data-step="postcode" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+
+        <!-- input state -->
+        <div id="locInput">
+          <div class="ob-form-body">
+            <h1 class="ob-form-title">Where are you looking for <span class="hl">work?</span></h1>
+            <p class="ob-form-sub">Enter your postcode and we'll show you jobs near you.</p>
+            <label class="field-lbl" for="obPostcode">Your postcode</label>
+            <div class="input-wrap has-lead">
+              <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+              <input type="text" id="obPostcode" class="ob-input" placeholder="e.g. SW1A 1AA" autocomplete="postal-code" inputmode="text" />
+              <button class="input-action" id="obGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+            </div>
+            <p class="ob-hint" id="obPostcodeMsg" hidden></p>
+            <div class="map-illus" aria-hidden="true">
+              <div class="map-grid"></div>
+              <div class="map-pulse"></div>
+              <div class="map-pin"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
+            </div>
+          </div>
+          <button class="btn-primary btn-cta" id="obPostcodeNext">Find jobs near me</button>
+        </div>
+
+        <!-- confirmed state -->
+        <div id="locSuccess" hidden>
+          <div class="ob-form-body loc-found">
+            <div class="loc-pin-badge"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
+            <h1 class="ob-form-title center">Location found</h1>
+            <p class="loc-place" id="locPlace">—</p>
+            <p class="ob-form-sub center">We'll show you jobs near here.</p>
+            <button type="button" class="link-btn loc-change" id="locChange">Use a different postcode</button>
+          </div>
+          <button class="btn-primary btn-cta" id="locContinue">Continue</button>
+        </div>
+      </div>
+
+      <!-- 5 · JOB PREFERENCE -->
+      <div class="ob-step ob-form" data-step="preference" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">Choose your <span class="hl">job preference</span></h1>
+          <p class="ob-form-sub">We'll only show you jobs that match how you want to work.</p>
+          <div class="pref-list" role="radiogroup" aria-label="Job preference">
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="part_time" checked />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Part-time</span><span class="pref-d">Weekends, evenings and flexible shifts.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="full_time" />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Full-time</span><span class="pref-d">Regular, full-week roles.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="both" />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Both</span><span class="pref-d">Show me everything that fits.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <button class="btn-primary btn-cta" id="obPrefNext">Continue</button>
+      </div>
+
+      <!-- 6 · NAME -->
+      <div class="ob-step ob-form" data-step="name" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">What should we call <span class="hl">you?</span></h1>
+          <p class="ob-form-sub">Tell us your name so we can personalise your experience.</p>
+          <input type="text" id="obName" class="ob-input solo" placeholder="Your full name" autocomplete="name" />
+        </div>
+        <button class="btn-primary btn-cta" id="obNameNext">Continue</button>
+      </div>
+
+      <!-- 6 · CREATE ACCOUNT -->
+      <div class="ob-step ob-form" data-step="account" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <div class="acct-head">
+            <div class="acct-copy">
+              <h1 class="ob-form-title">Create your <span class="hl">account</span></h1>
+              <p class="ob-form-sub">One last step and you're in.<br />Let's get you set up.</p>
+            </div>
+            <div class="acct-lock" aria-hidden="true">
+              <span class="lock-glow"></span>
+              <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="url(#lg)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FF7A2E"/><stop offset="1" stop-color="#E05400"/></linearGradient></defs><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.4" fill="url(#lg)" stroke="none"/></svg>
+              <span class="lock-avatar"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0z"/></svg></span>
+            </div>
+          </div>
+
+          <label class="field-lbl" for="obEmail">Email address</label>
+          <div class="input-wrap has-lead">
+            <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span>
+            <input type="email" id="obEmail" class="ob-input" placeholder="e.g. you@email.com" autocomplete="email" inputmode="email" />
+            <span class="input-tick" id="obEmailTick" hidden><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          </div>
+
+          <label class="field-lbl" for="obPassword">Password</label>
+          <div class="input-wrap has-lead">
+            <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+            <input type="password" id="obPassword" class="ob-input" placeholder="Create a password" autocomplete="new-password" />
+            <button class="input-action" id="obPwToggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+
+          <ul class="pw-rules" id="pwRules">
+            <li data-rule="len"><span class="rule-dot"></span>At least 8 characters</li>
+            <li data-rule="num"><span class="rule-dot"></span>Includes a number</li>
+            <li data-rule="special"><span class="rule-dot"></span>Includes a special character</li>
+            <li data-rule="case"><span class="rule-dot"></span>Includes upper &amp; lower case</li>
+          </ul>
+
+          <label class="field-lbl" for="obConfirm">Confirm password</label>
+          <div class="input-wrap has-lead">
+            <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+            <input type="password" id="obConfirm" class="ob-input" placeholder="Confirm your password" autocomplete="new-password" />
+            <button class="input-action" id="obConfirmToggle" type="button" aria-label="Show password"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></button>
+          </div>
+          <p class="ob-hint danger" id="obAccountMsg" hidden></p>
+        </div>
+        <button class="btn-primary btn-cta" id="obAccountNext">Create account</button>
+        <p class="ob-alt">Already have an account? <button type="button" id="obLogin" class="link-btn">Log in</button></p>
+      </div>
+
+      <!-- 7 · PAYWALL / OFFER -->
+      <div class="ob-step ob-form" data-step="offer" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <div class="offer-head">
+            <div>
+              <h1 class="ob-form-title big">Unlock Align for just <span class="hl">£1</span> for <span class="hl">12 months</span></h1>
+              <p class="ob-form-sub">First month is on us. Free.</p>
+            </div>
+            <div class="offer-phone" aria-hidden="true">
+              <span class="offer-phone-body"><span class="offer-phone-logo">align</span></span>
+              <span class="offer-coin">£1</span>
+            </div>
+          </div>
+          <ul class="offer-list">
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg></span>
+              <div><div class="offer-t">24-hour job refresh</div><div class="offer-d">We update jobs every 24 hours so you always see the latest.</div></div>
+            </li>
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+              <div><div class="offer-t">Fresh job notifications</div><div class="offer-d">Get notified when new, relevant jobs drop near you.</div></div>
+            </li>
+            <li>
+              <span class="offer-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+              <div><div class="offer-t">One tap to apply</div><div class="offer-d">Quick. Easy. No hassle.</div></div>
+            </li>
+          </ul>
+          <div class="offer-price">
+            <span class="offer-price-badge">£1</span>
+            <div><div class="offer-t">Just £1 for 12 months</div><div class="offer-d">Renews at £1/month after that. Cancel anytime.</div></div>
+          </div>
+        </div>
+        <button class="btn-primary btn-cta" id="obOfferNext">Get started for £1</button>
+        <p class="ob-alt muted">Cancel anytime. No hidden fees.</p>
+      </div>
+
+      <!-- 8 · ALL SET -->
+      <div class="ob-step ob-done" data-step="done" hidden>
+        <div class="done-top">
+          <div class="done-check" aria-hidden="true">
+            <span class="done-check-glow"></span>
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <h1 class="done-title">You're <span class="hl">all set!</span></h1>
+          <p class="done-sub">Let's find your next job.</p>
+          <div class="done-feats">
+            <div class="done-feat">
+              <span class="df-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+              <div class="df-t">Real jobs</div><div class="df-d">New opportunities added daily.</div>
+            </div>
+            <div class="done-feat">
+              <span class="df-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+              <div class="df-t">Fast &amp; simple</div><div class="df-d">Apply in seconds and get noticed.</div>
+            </div>
+            <div class="done-feat">
+              <span class="df-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg></span>
+              <div class="df-t">Jobs that fit you</div><div class="df-d">We'll match jobs that suit you.</div>
+            </div>
+          </div>
+        </div>
+        <div class="ob-photo done-photo" data-img="done">
+          <div class="ob-photo-fallback grad-c" aria-hidden="true"></div>
+        </div>
+        <button class="btn-primary btn-cta done-cta" id="obStart">Start exploring</button>
+      </div>
+
     </section>
 
     <!-- ================= TOP BAR ================= -->
     <header class="topbar" id="topbar" hidden>
       <div class="wordmark" aria-label="Align">Align<span class="wordmark-dot">.</span></div>
-      <button id="profileBtn" class="icon-btn" aria-label="Saved jobs and profile">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
-        <span id="savedCount" class="saved-count" hidden>0</span>
+      <button id="bellBtn" class="icon-btn" aria-label="Notifications">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        <span class="bell-dot" aria-hidden="true"></span>
       </button>
     </header>
 
@@ -113,6 +297,16 @@
       </section>
 
       <form id="searchForm" class="setup" autocomplete="off">
+        <fieldset class="field">
+          <legend class="field-label">Where are you?</legend>
+          <div class="input-wrap has-lead">
+            <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+            <input type="text" id="homePostcode" class="ob-input" placeholder="Enter postcode" autocomplete="postal-code" />
+            <button class="input-action" id="homeGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+          </div>
+          <p class="ob-hint" id="homePostcodeMsg" hidden></p>
+        </fieldset>
+
         <fieldset class="field">
           <legend class="field-label">What kind of work?</legend>
           <div class="chips" role="radiogroup">
@@ -149,7 +343,7 @@
           </div>
         </fieldset>
 
-        <p class="fine-print">Real jobs, updated daily · £{{ '%.2f'|format(min_pay) }}/hr minimum · around NG7 1NZ</p>
+        <p class="fine-print">Real jobs, updated daily · £{{ '%.2f'|format(min_pay) }}/hr minimum · around <span id="finePlace">your postcode</span></p>
 
         {% if not adzuna_configured %}
         <p class="config-warn">Job data isn't connected yet — add your Adzuna keys to <code>.env</code> and restart.</p>
@@ -268,11 +462,72 @@
       <p class="deck-hint" id="deckHint" hidden>Swipe right to shortlist · left to pass · tap for details</p>
     </section>
 
-    <!-- ================= JOB DETAIL SHEET ================= -->
-    <div id="detailSheet" class="sheet" hidden>
-      <div class="sheet-backdrop" data-close-sheet></div>
-      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Job details">
-        <div class="sheet-grabber" aria-hidden="true"></div>
+    <!-- ================= SAVED ================= -->
+    <section id="savedView" class="view section-view" hidden>
+      <div class="section-head"><h1 class="section-title">Saved jobs</h1><p class="section-sub" id="savedSub">Roles you've shortlisted.</p></div>
+      <div id="savedList" class="section-list"></div>
+    </section>
+
+    <!-- ================= APPLICATIONS ================= -->
+    <section id="appliedView" class="view section-view" hidden>
+      <div class="section-head"><h1 class="section-title">Applications</h1><p class="section-sub">Jobs you've applied to.</p></div>
+      <div id="appliedList" class="section-list"></div>
+    </section>
+
+    <!-- ================= YOU / ACCOUNT ================= -->
+    <section id="accountView" class="view section-view" hidden>
+      <div class="section-head"><h1 class="section-title">You</h1></div>
+      <div class="acct-card">
+        <div class="acct-avatar" id="acctAvatar">A</div>
+        <div class="acct-id">
+          <div class="acct-name" id="acctName">Your account</div>
+          <div class="acct-email" id="acctEmail">Not signed in</div>
+        </div>
+      </div>
+      <div class="acct-rows">
+        <div class="acct-row"><span class="ar-k">Location</span><span class="ar-v"><span id="acctPostcode">—</span> <button type="button" class="ar-change" id="acctChangePostcode">Change</button></span></div>
+        <div class="acct-row"><span class="ar-k">Subscription</span><span class="ar-v"><span class="ar-badge" id="acctPlan">Free preview</span></span></div>
+        <div class="acct-row"><span class="ar-k">Job refresh</span><span class="ar-v">Every 24 hours</span></div>
+      </div>
+      <div class="acct-actions">
+        <button class="acct-link" id="acctNewSearch">Start a new search</button>
+        <button class="acct-link danger" id="acctLogout">Log out</button>
+      </div>
+      <p class="acct-foot">Align · Honest, local, part-time jobs.</p>
+    </section>
+
+    <!-- ================= BOTTOM TAB BAR ================= -->
+    <nav id="tabbar" class="tabbar" hidden aria-label="Main navigation">
+      <button class="tab active" data-tab="discover" aria-label="Discover">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2c1 3 4 4.5 4 8a4 4 0 0 1-8 0c0-1.2.4-2 1-3 .3 1 1 1.5 1.7 1.7C10 6.5 11 4 12 2z"/><path d="M8.5 13.5A4.5 4.5 0 0 0 12 21a4.5 4.5 0 0 0 3.5-7.5"/></svg>
+        <span>Discover</span>
+      </button>
+      <button class="tab" data-tab="saved" aria-label="Saved">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.5-1.5 2-3.2 2-4.5A4.5 4.5 0 0 0 16.5 5c-1.7 0-3.3.9-4.5 2.5C10.8 5.9 9.2 5 7.5 5A4.5 4.5 0 0 0 3 9.5c0 1.3.5 3 2 4.5l7 6.5z"/></svg>
+        <span>Saved</span><span class="tab-badge" id="tabSavedBadge" hidden>0</span>
+      </button>
+      <button class="tab" data-tab="applied" aria-label="Applications">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        <span>Applications</span>
+      </button>
+      <button class="tab" data-tab="account" aria-label="You">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+        <span>You</span>
+      </button>
+    </nav>
+
+    <!-- ================= JOB DETAIL (full screen) ================= -->
+    <div id="detailSheet" class="sheet sheet-cover" hidden>
+      <div class="sheet-panel sheet-full" role="dialog" aria-modal="true" aria-label="Job details">
+        <div class="detail-topbar">
+          <button class="icon-btn" id="detailBack" data-close-sheet aria-label="Back to jobs">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div class="detail-topbar-title">Job details</div>
+          <button class="icon-btn" id="detailClose" data-close-sheet aria-label="Close">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
         <div class="sheet-scroll" id="detailBody"><!-- filled by JS --></div>
         <div class="sheet-actions">
           <button class="ctrl ctrl-save lg" id="detailSaveBtn" aria-label="Shortlist this job">
@@ -357,6 +612,37 @@
         <p class="sent-copy">We've opened <span id="sentCompany">the employer</span>'s site in a new tab. Finish there and you're done — good luck! 🍀</p>
         <button class="btn-primary btn-cta" id="sentKeep">Keep swiping</button>
         <button class="paywall-later" id="sentApplications">View my applications</button>
+      </div>
+    </div>
+
+    <!-- ================= VERIFYING PAYMENT ================= -->
+    <div id="payVerifyOverlay" class="sheet" hidden>
+      <div class="sheet-backdrop"></div>
+      <div class="sent-card verify-card" role="dialog" aria-modal="true" aria-label="Verifying your payment">
+        <div class="verify-spinner" aria-hidden="true"><span></span></div>
+        <h2 class="sent-title" id="verifyTitle">Verifying your payment…</h2>
+        <p class="sent-copy" id="verifyCopy">Hang tight — we're confirming your £1 unlock with GoCardless. This only takes a moment.</p>
+        <button class="paywall-later" id="verifyDismiss" hidden>Close</button>
+      </div>
+    </div>
+
+    <!-- ================= NOTIFICATIONS ================= -->
+    <div id="notifSheet" class="sheet" hidden>
+      <div class="sheet-backdrop" data-close-sheet></div>
+      <div class="sheet-panel" role="dialog" aria-modal="true" aria-label="Notifications">
+        <div class="sheet-grabber" aria-hidden="true"></div>
+        <div class="drawer-head"><h2>Notifications</h2>
+          <button class="icon-btn" data-close-sheet aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div class="notif-alert" id="notifAlert">
+          <span class="notif-ic"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg></span>
+          <div class="notif-alert-body">
+            <div class="notif-alert-t">Get job alerts</div>
+            <div class="notif-alert-d" id="notifAlertD">Turn on alerts and we'll ping you when fresh jobs drop near you.</div>
+          </div>
+          <button class="notif-toggle" id="notifToggle">Enable</button>
+        </div>
+        <div id="notifList" class="notif-list"></div>
       </div>
     </div>
 

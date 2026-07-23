@@ -41,11 +41,9 @@ MAX_DAYS_OLD: int = 14
 #: Allowed search radii (miles) offered on the home page.
 ALLOWED_RADII: List[int] = [3, 5, 10, 15]
 
-#: Title/description tokens that mark a role as unsuitable (senior / full-time).
-REJECT_KEYWORDS: List[str] = [
-    "full-time",
-    "full time",
-    "fulltime",
+#: Tokens that mark a role as too senior — always rejected, whatever the
+#: user's part-time/full-time preference.
+SENIORITY_KEYWORDS: List[str] = [
     "senior",
     "manager",
     "management",
@@ -56,6 +54,19 @@ REJECT_KEYWORDS: List[str] = [
     "principal",
     "supervisor",
 ]
+
+#: Tokens that mark a role as full-time. Rejected only when the user asked for
+#: part-time work; allowed for the "full-time" and "both" preferences.
+FULLTIME_KEYWORDS: List[str] = [
+    "full-time",
+    "full time",
+    "fulltime",
+]
+
+#: Combined reject list (senior + full-time). Kept for backward compatibility;
+#: :func:`filters.is_seniority_rejected` now consults the two lists above so it
+#: can honour the user's employment preference.
+REJECT_KEYWORDS: List[str] = FULLTIME_KEYWORDS + SENIORITY_KEYWORDS
 
 #: Tokens that positively signal a part-time / student-friendly role.
 KEEP_KEYWORDS: List[str] = [
@@ -156,6 +167,33 @@ RANKING_WEIGHTS = RankingWeights()
 
 
 # --------------------------------------------------------------------------- #
+# Environment helpers (tolerant of blank / malformed values)
+# --------------------------------------------------------------------------- #
+def _env_int(name: str, default: int) -> int:
+    """Read an int env var, falling back to ``default`` when unset OR blank/invalid.
+
+    ``os.getenv(name, default)`` only uses the default when the variable is
+    *unset*; a variable set to an empty string (e.g. ``PORT=`` in a .env, or an
+    unresolved ``$PORT``) would otherwise crash ``int("")``. This never does.
+    """
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    try:
+        return int(str(raw).strip())
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_bool(name: str, default: bool = False) -> bool:
+    """Read a boolean env var; blank/unset -> ``default``."""
+    raw = os.getenv(name)
+    if raw is None or str(raw).strip() == "":
+        return default
+    return str(raw).strip().lower() in {"1", "true", "yes", "on"}
+
+
+# --------------------------------------------------------------------------- #
 # Runtime settings container
 # --------------------------------------------------------------------------- #
 @dataclass
@@ -167,38 +205,52 @@ class Settings:
     secret_key: str = field(
         default_factory=lambda: os.getenv("SECRET_KEY", "dev-insecure-secret")
     )
-    host: str = field(default_factory=lambda: os.getenv("HOST", "127.0.0.1"))
-    port: int = field(default_factory=lambda: int(os.getenv("PORT", "5000")))
-    debug: bool = field(
-        default_factory=lambda: os.getenv("FLASK_DEBUG", "0").lower()
-        in {"1", "true", "yes"}
-    )
+    host: str = field(default_factory=lambda: os.getenv("HOST") or "127.0.0.1")
+    port: int = field(default_factory=lambda: _env_int("PORT", 5000))
+    debug: bool = field(default_factory=lambda: _env_bool("FLASK_DEBUG", False))
 
     # --- Paywall --- #
     paywall_enabled: bool = field(
-        default_factory=lambda: os.getenv("PAYWALL_ENABLED", "0").lower()
-        in {"1", "true", "yes"}
+        default_factory=lambda: _env_bool("PAYWALL_ENABLED", False)
     )
     #: GoCardless hosted payment link (https://pay.gocardless.com/...). When set,
     #: this is the primary payment method and the CTA links straight to it.
+    #: Defaults to the project's hosted £1 link so the paywall is functional as
+    #: soon as PAYWALL_ENABLED=1 — override in .env to use your own link.
     gocardless_payment_link: str = field(
-        default_factory=lambda: os.getenv("GOCARDLESS_PAYMENT_LINK", "").strip()
+        default_factory=lambda: os.getenv(
+            "GOCARDLESS_PAYMENT_LINK",
+            "https://pay.gocardless.com/BRT01KY3S2V89HC5QBH5WG89ZHBE8",
+        ).strip()
     )
     #: Shared secret appended to the GoCardless success-redirect URL so that
     #: only a genuine post-payment return can unlock access. Optional but
-    #: recommended (see README).
+    #: recommended (see README). Only used in hosted-link mode.
     payment_return_token: str = field(
         default_factory=lambda: os.getenv("PAYMENT_RETURN_TOKEN", "").strip()
+    )
+    #: GoCardless API access token (live_... or sandbox_...). When set, the app
+    #: verifies payments server-side via the GoCardless API instead of trusting
+    #: the redirect. This is a SECRET — env only, never a URL or tracked file.
+    gocardless_access_token: str = field(
+        default_factory=lambda: os.getenv("GOCARDLESS_ACCESS_TOKEN", "").strip()
+    )
+    #: Which GoCardless environment the access token belongs to.
+    gocardless_environment: str = field(
+        default_factory=lambda: (os.getenv("GOCARDLESS_ENVIRONMENT", "live").strip().lower() or "live")
+    )
+    #: Webhook endpoint secret (from the GoCardless dashboard) used to verify the
+    #: signature on incoming webhook events. Required for the webhook endpoint.
+    gocardless_webhook_secret: str = field(
+        default_factory=lambda: os.getenv("GOCARDLESS_WEBHOOK_SECRET", "").strip()
     )
     #: Stripe secret key (fallback payment method if no GoCardless link is set).
     stripe_secret_key: str = field(
         default_factory=lambda: os.getenv("STRIPE_SECRET_KEY", "")
     )
     #: Access price in the smallest currency unit (pence). 100 = £1.00.
-    price_pence: int = field(
-        default_factory=lambda: int(os.getenv("PRICE_PENCE", "100"))
-    )
-    currency: str = field(default_factory=lambda: os.getenv("CURRENCY", "gbp"))
+    price_pence: int = field(default_factory=lambda: _env_int("PRICE_PENCE", 100))
+    currency: str = field(default_factory=lambda: os.getenv("CURRENCY") or "gbp")
     #: Public base URL of the deployed app (used for payment redirect URLs).
     public_base_url: str = field(
         default_factory=lambda: os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
@@ -211,7 +263,14 @@ class Settings:
 
     @property
     def payment_provider(self) -> str:
-        """Which payment method is active: 'gocardless', 'stripe' or 'none'."""
+        """Which payment method is active.
+
+        Priority: a GoCardless API access token (verified server-side) beats a
+        bare hosted link (trust/token gated), which beats Stripe.
+        Returns one of: 'gocardless_api', 'gocardless', 'stripe', 'none'.
+        """
+        if self.gocardless_access_token:
+            return "gocardless_api"
         if self.gocardless_payment_link:
             return "gocardless"
         if self.stripe_secret_key:
@@ -219,11 +278,22 @@ class Settings:
         return "none"
 
     @property
+    def gocardless_api_base(self) -> str:
+        """GoCardless REST API base URL for the configured environment."""
+        return (
+            "https://api-sandbox.gocardless.com"
+            if self.gocardless_environment == "sandbox"
+            else "https://api.gocardless.com"
+        )
+
+    @property
     def payment_provider_label(self) -> str:
         """Human-friendly provider name for the UI."""
-        return {"gocardless": "GoCardless", "stripe": "Stripe"}.get(
-            self.payment_provider, ""
-        )
+        return {
+            "gocardless_api": "GoCardless",
+            "gocardless": "GoCardless",
+            "stripe": "Stripe",
+        }.get(self.payment_provider, "")
 
     @property
     def paywall_active(self) -> bool:

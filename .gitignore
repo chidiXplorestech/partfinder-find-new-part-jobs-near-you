@@ -22,3 +22,6 @@ htmlcov/
 .idea/
 .vscode/
 *.log
+
+# Local account store
+align.db
