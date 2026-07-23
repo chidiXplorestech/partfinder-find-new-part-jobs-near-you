@@ -189,9 +189,11 @@
       });
       return allOk;
     }
+    var confirm = $("obConfirm");
     email.addEventListener("input", function () { tick.hidden = !emailValid(email.value.trim()); });
     pw.addEventListener("input", refreshPw);
     $("obPwToggle").addEventListener("click", function () { pw.type = pw.type === "password" ? "text" : "password"; });
+    $("obConfirmToggle").addEventListener("click", function () { confirm.type = confirm.type === "password" ? "text" : "password"; });
     $("obLogin").addEventListener("click", function () {
       acctMsg.hidden = false; acctMsg.className = "ob-hint"; acctMsg.textContent = "Enter your email and password above, then tap Create account to sign in.";
     });
@@ -199,6 +201,7 @@
       var e = email.value.trim(), p = pw.value;
       if (!emailValid(e)) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Please enter a valid email address."; return; }
       if (!refreshPw()) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Your password doesn't meet all the rules yet."; return; }
+      if (confirm.value !== p) { acctMsg.hidden = false; acctMsg.className = "ob-hint danger"; acctMsg.textContent = "Passwords don't match."; return; }
       var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Creating…"; acctMsg.hidden = true;
       fetch("/api/signup", { method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: e, password: p, name: profile.name || "" }) })
