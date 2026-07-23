@@ -244,10 +244,6 @@ class Settings:
     gocardless_webhook_secret: str = field(
         default_factory=lambda: os.getenv("GOCARDLESS_WEBHOOK_SECRET", "").strip()
     )
-    #: Stripe secret key (fallback payment method if no GoCardless link is set).
-    stripe_secret_key: str = field(
-        default_factory=lambda: os.getenv("STRIPE_SECRET_KEY", "")
-    )
     #: Access price in the smallest currency unit (pence). 100 = £1.00.
     price_pence: int = field(default_factory=lambda: _env_int("PRICE_PENCE", 100))
     currency: str = field(default_factory=lambda: os.getenv("CURRENCY") or "gbp")
@@ -266,15 +262,13 @@ class Settings:
         """Which payment method is active.
 
         Priority: a GoCardless API access token (verified server-side) beats a
-        bare hosted link (trust/token gated), which beats Stripe.
-        Returns one of: 'gocardless_api', 'gocardless', 'stripe', 'none'.
+        bare hosted link (trust/token gated).
+        Returns one of: 'gocardless_api', 'gocardless', 'none'.
         """
         if self.gocardless_access_token:
             return "gocardless_api"
         if self.gocardless_payment_link:
             return "gocardless"
-        if self.stripe_secret_key:
-            return "stripe"
         return "none"
 
     @property
@@ -292,7 +286,6 @@ class Settings:
         return {
             "gocardless_api": "GoCardless",
             "gocardless": "GoCardless",
-            "stripe": "Stripe",
         }.get(self.payment_provider, "")
 
     @property

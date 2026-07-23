@@ -18,8 +18,9 @@ time**: right to shortlist, left to pass, tap for details, one tap to apply.
 - **Honest by design:** no fake counts, no dark patterns, no manipulative
   subscriptions. If data is missing we say so; we never invent it.
 - **Business model:** a symbolic **£1 one-time unlock** ("less than a coffee")
-  that covers API + infrastructure. Payment via **GoCardless** hosted link
-  (Stripe Checkout is a fallback). Off by default (`PAYWALL_ENABLED=0`).
+  that covers API + infrastructure. Payment via **GoCardless** — verified
+  server-side via the Billing Requests API, with a hosted link as a simpler
+  fallback. Off by default (`PAYWALL_ENABLED=0`).
 
 Search origin currently defaults to **57 Albert Grove, Nottingham, NG7 1NZ**
 (hardcoded — a per-user postcode input is a known next step).
@@ -90,7 +91,7 @@ imagery** on the slides (and wherever it lifts the UI), not the current
 - **Pipeline package `align/`:** `config` · `models` · `adzuna_client` ·
   `filters` (pay ≥ £12.71/hr, ≤14 days old, distance, seniority reject) ·
   `ranking` (weighted best-first → match %) · `orchestrator` (tiered search
-  that widens gracefully) · `payments` (GoCardless/Stripe).
+  that widens gracefully) · `payments` (GoCardless Billing Requests API).
 - **Frontend:** `templates/index.html`, `static/css/style.css`,
   `static/js/app.js` (vanilla JS, no frameworks; GSAP from CDN).
 - **Tests:** `tests/` (filters + ranking). Run `python -m pytest -q`.
@@ -102,7 +103,7 @@ imagery** on the slides (and wherever it lifts the UI), not the current
 ## Build status
 
 - **Done:** intro slides, home, deck, job detail (full-screen, back + ✕),
-  Apply + application-sent, matches, states, £1 GoCardless/Stripe paywall,
+  Apply + application-sent, matches, states, £1 GoCardless paywall,
   Mastercard palette, bespoke SVG art. "View job" doubled-card bug fixed.
 - **Planned (onboarding sequence above):** postcode/location input; email +
   password account setup (validity + strong-password); paywall moved to

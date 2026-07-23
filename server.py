@@ -36,7 +36,7 @@ from align.config import (
 )
 from align.models import SearchQuery
 from align.orchestrator import SearchOrchestrator
-from align.payments import GoCardlessGateway, PaymentError, StripeGateway
+from align.payments import GoCardlessGateway, PaymentError
 from align import accounts
 from align.geocode import lookup_postcode, reverse_geocode
 
@@ -54,7 +54,6 @@ def create_app() -> Flask:
 
     client = AdzunaClient(settings)
     orchestrator = SearchOrchestrator(client)
-    payments = StripeGateway(settings)
     gocardless = GoCardlessGateway(settings)
 
     # -------------------------------------------------------------- #
@@ -164,7 +163,7 @@ def create_app() -> Flask:
         )
 
     # -------------------------------------------------------------- #
-    # Paywall (GoCardless payment link, or Stripe Checkout fallback)
+    # Paywall (GoCardless: verified Billing Requests API, or hosted link)
     # -------------------------------------------------------------- #
     @app.route("/api/checkout", methods=["POST"])
     def api_checkout():
@@ -189,18 +188,10 @@ def create_app() -> Flask:
             session["gc_br"] = br_id
             return jsonify({"ok": True, "checkout_url": auth_url})
 
-        if settings.payment_provider == "gocardless":
-            # Hosted GoCardless link — just hand the browser straight to it.
-            return jsonify(
-                {"ok": True, "checkout_url": settings.gocardless_payment_link}
-            )
-
-        # Stripe fallback: create a Checkout Session server-side.
-        try:
-            checkout_url = payments.create_checkout(origin=request.host_url)
-        except PaymentError as exc:
-            return jsonify({"ok": False, "error": str(exc)}), 502
-        return jsonify({"ok": True, "checkout_url": checkout_url})
+        # Hosted GoCardless link — just hand the browser straight to it.
+        return jsonify(
+            {"ok": True, "checkout_url": settings.gocardless_payment_link}
+        )
 
     @app.route("/api/payment-status")
     def api_payment_status():
@@ -229,12 +220,11 @@ def create_app() -> Flask:
     def pay_success():
         """Confirm payment, then unlock access for this browser session.
 
-        * Stripe: the payment is verified server-side against the API.
-        * GoCardless: hosted payment links can't be verified from a static
-          redirect, so we gate the unlock on a shared ``token`` that you
-          configure on the GoCardless success-redirect URL. If no token is set
-          we unlock on return (trust-based) — see the README for the fully
-          verified webhook option.
+        * gocardless_api: the billing request is verified server-side against the
+          GoCardless API (and/or a signed webhook) before unlocking.
+        * gocardless (hosted link): can't be verified from a static redirect, so
+          the unlock is gated on a shared ``token`` configured on the success
+          redirect URL (trust-based when no token is set).
         """
         provider = settings.payment_provider
 
@@ -254,24 +244,13 @@ def create_app() -> Flask:
             # gc_br on the session so the poll can re-check it.
             return redirect(url_for("index", verifying="1"))
 
-        if provider == "gocardless":
-            expected = settings.payment_return_token
-            supplied = request.args.get("token", "")
-            if expected and supplied != expected:
-                return redirect(url_for("index", pay="failed"))
-            session["paid"] = True
-            return redirect(url_for("index", paid="1"))
-
-        # Stripe path: verify the checkout session was actually paid.
-        session_id = request.args.get("session_id", "")
-        try:
-            paid = payments.is_paid(session_id)
-        except PaymentError:
-            paid = False
-        if paid:
-            session["paid"] = True
-            return redirect(url_for("index", paid="1"))
-        return redirect(url_for("index", pay="failed"))
+        # Hosted-link mode: gate the unlock on the shared return token.
+        expected = settings.payment_return_token
+        supplied = request.args.get("token", "")
+        if expected and supplied != expected:
+            return redirect(url_for("index", pay="failed"))
+        session["paid"] = True
+        return redirect(url_for("index", paid="1"))
 
     @app.route("/pay/cancel")
     def pay_cancel():

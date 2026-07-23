@@ -29,8 +29,8 @@ fake jobs, ever.
 - 🪗 **Graceful search** — if strict filters return too little, Align
   automatically relaxes (drops the category tag, widens the radius) and tells
   you what it did, so the deck is rarely empty.
-- 💳 **Optional £1 paywall** — an off-by-default Stripe Checkout gate that
-  charges a one-time fee to unlock matches (see [Paywall](#paywall-1-unlock)).
+- 💳 **Optional £1 paywall** — an off-by-default GoCardless gate that charges a
+  one-time fee to unlock matches (see [Paywall](#paywall-1-unlock)).
 - ♿ Explicit loading / empty / error / "all caught up" states, and
   `prefers-reduced-motion` support.
 
@@ -125,9 +125,11 @@ Open <http://127.0.0.1:5000>.
 | `PORT`            | ➖       | `5000`      | Bind port                             |
 | `FLASK_DEBUG`     | ➖       | `0`         | `1` to enable debug/auto-reload       |
 | `PAYWALL_ENABLED` | ➖       | `0`         | `1` to require the £1 payment          |
-| `GOCARDLESS_PAYMENT_LINK` | ➖ | —      | GoCardless hosted pay link (Option A)  |
-| `PAYMENT_RETURN_TOKEN` | ➖  | —          | Secret guarding the GoCardless return  |
-| `STRIPE_SECRET_KEY`| ➖      | —           | Stripe secret key (Option B fallback)  |
+| `GOCARDLESS_ACCESS_TOKEN` | ➖ | —     | API token → verified mode (Option A)   |
+| `GOCARDLESS_ENVIRONMENT`  | ➖ | `live` | `live` or `sandbox` (matches token)    |
+| `GOCARDLESS_WEBHOOK_SECRET`| ➖ | —     | Webhook signing secret (verified mode) |
+| `GOCARDLESS_PAYMENT_LINK` | ➖ | link  | Hosted pay link (Option B fallback)    |
+| `PAYMENT_RETURN_TOKEN` | ➖  | —          | Secret guarding the hosted-link return |
 | `PRICE_PENCE`     | ➖       | `100`       | Access price in pence (100 = £1.00)   |
 | `CURRENCY`        | ➖       | `gbp`       | Currency code                         |
 | `PUBLIC_BASE_URL` | ➖       | —           | Deployed URL, for payment return links |
@@ -149,45 +151,52 @@ weighted scoring, Match % banding, and best-first ordering.
 ## Paywall (£1 unlock)
 
 Align ships with an **optional** one-time paywall. It is **off by default**
-(`PAYWALL_ENABLED=0` → the app is completely free). Two payment methods are
-supported; the app picks GoCardless if a link is set, otherwise Stripe.
+(`PAYWALL_ENABLED=0` → the app is completely free). Payments are taken through
+**GoCardless**. Two modes are supported; setting an API access token activates
+the verified mode, otherwise the app falls back to the hosted link.
 
-### Option A — GoCardless payment link (simplest)
+### Option A — GoCardless API (verified, recommended)
 
-A [GoCardless](https://gocardless.com) hosted payment link is just a URL you
-send payers to — no API keys, no card handling on your side.
+The server drives the GoCardless **Billing Requests API** and confirms each £1
+actually cleared before unlocking — a forged redirect gets nothing.
+
+1. In your GoCardless dashboard (Developers → Access tokens) create an access
+   token. Use a **sandbox** token to test first.
+2. Register `https://your-app-url/pay/success` as an allowed **redirect URI**.
+3. Add a **webhook endpoint** pointing at `https://your-app-url/webhooks/gocardless`
+   and copy its signing secret.
+4. Set these environment variables (in `.env` locally, or your host dashboard):
+   ```env
+   PAYWALL_ENABLED=1
+   GOCARDLESS_ACCESS_TOKEN=live_xxx        # or sandbox_xxx
+   GOCARDLESS_ENVIRONMENT=live             # or sandbox
+   GOCARDLESS_WEBHOOK_SECRET=your_webhook_secret
+   PUBLIC_BASE_URL=https://your-app-url
+   ```
+5. Restart. The £1 unlock now creates a billing request via the API, sends the
+   user to the hosted flow, and only unlocks once GoCardless reports it
+   `fulfilled` (verified on return **and** via the signed webhook, so a payment
+   counts even if the customer closes the tab).
+
+### Option B — GoCardless hosted link (simpler, trust/token gated)
+
+If you leave `GOCARDLESS_ACCESS_TOKEN` blank, the app uses a hosted payment link
+instead. A static link can't be verified from its redirect, so the unlock is
+gated on a shared `PAYMENT_RETURN_TOKEN`.
 
 1. In your GoCardless dashboard, create a payment link for £1.
 2. Set its **success redirect URL** to
-   `https://your-app-url/pay/success?token=YOUR_SECRET_TOKEN`
-   (invent any value for the token).
-3. Set these environment variables (in `.env` locally, or your host dashboard):
+   `https://your-app-url/pay/success?token=YOUR_SECRET_TOKEN` (invent the token).
+3. Set the environment variables:
    ```env
    PAYWALL_ENABLED=1
    GOCARDLESS_PAYMENT_LINK=https://pay.gocardless.com/XXXXXXXX
    PAYMENT_RETURN_TOKEN=YOUR_SECRET_TOKEN
    PUBLIC_BASE_URL=https://your-app-url
    ```
-4. Restart. "Find my matches" now shows a £1 unlock screen; the CTA sends the
-   user to your GoCardless link, and GoCardless redirects them back to unlock.
-
-**Security note:** a static payment link can't be verified from its redirect the
-way a Stripe session can, so the unlock is gated on the shared
-`PAYMENT_RETURN_TOKEN` — only a return from *your* configured GoCardless link
-carries the right token. For airtight verification, add a GoCardless webhook
-(`payments.confirmed`) that records paid customers server-side; that's the
-recommended next step for production.
-
-### Option B — Stripe Checkout (fallback)
-
-If you leave `GOCARDLESS_PAYMENT_LINK` blank but set a `STRIPE_SECRET_KEY`
-(from <https://dashboard.stripe.com/apikeys>), the app uses Stripe Checkout
-instead. Here the payment **is** verified server-side (`payment_status == "paid"`)
-so the return URL can't be forged. Test with card `4242 4242 4242 4242`, any
-future expiry and any CVC.
 
 > 💡 Either way, payment unlocks access for the current browser session. For
-> permanent per-user accounts you'd add a login + database — out of scope here.
+> permanent per-user accounts you'd tie the unlock to the account record.
 
 ---
 
@@ -202,8 +211,8 @@ it deploys as-is to [Render](https://render.com) or [Railway](https://railway.ap
 2. In Render: **New → Blueprint** → connect the repo. Render reads `render.yaml`
    and creates the service for you.
 3. When prompted, paste `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` (and, if you want
-   the paywall, `STRIPE_SECRET_KEY` + set `PAYWALL_ENABLED=1`). `SECRET_KEY` is
-   generated automatically.
+   the paywall, `GOCARDLESS_ACCESS_TOKEN` + set `PAYWALL_ENABLED=1`). `SECRET_KEY`
+   is generated automatically.
 4. Deploy. You get a public URL like `https://align.onrender.com` — set that as
    `PUBLIC_BASE_URL` if you enabled the paywall.
 
