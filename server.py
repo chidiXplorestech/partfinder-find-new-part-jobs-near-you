@@ -202,6 +202,29 @@ def create_app() -> Flask:
             return jsonify({"ok": False, "error": str(exc)}), 502
         return jsonify({"ok": True, "checkout_url": checkout_url})
 
+    @app.route("/api/payment-status")
+    def api_payment_status():
+        """Report whether this session has paid — used by the client to poll.
+
+        Lets any tab detect completion (including the original tab when payment
+        finishes in a new one, since the session cookie is shared). In verified
+        GoCardless mode it re-checks the billing request and flips the session to
+        paid the moment GoCardless confirms.
+        """
+        if session.get("paid"):
+            return jsonify({"ok": True, "paid": True})
+        if settings.payment_provider == "gocardless_api":
+            br_id = session.get("gc_br", "")
+            if br_id and (
+                accounts.is_billing_request_paid(br_id) or gocardless.is_fulfilled(br_id)
+            ):
+                accounts.mark_billing_request_paid(br_id)
+                session["paid"] = True
+                session.pop("gc_br", None)
+                return jsonify({"ok": True, "paid": True})
+            return jsonify({"ok": True, "paid": False, "pending": bool(br_id)})
+        return jsonify({"ok": True, "paid": False})
+
     @app.route("/pay/success")
     def pay_success():
         """Confirm payment, then unlock access for this browser session.
@@ -219,16 +242,17 @@ def create_app() -> Flask:
             # Verify against GoCardless: the billing request tied to this session
             # must actually be fulfilled (or already confirmed by a webhook).
             br_id = session.get("gc_br") or request.args.get("billing_request_id", "")
-            verified = bool(br_id) and (
-                accounts.is_billing_request_paid(br_id)
-                or gocardless.is_fulfilled(br_id)
-            )
-            if not verified:
+            if not br_id:
                 return redirect(url_for("index", pay="failed"))
-            accounts.mark_billing_request_paid(br_id)
-            session["paid"] = True
-            session.pop("gc_br", None)
-            return redirect(url_for("index", paid="1"))
+            if accounts.is_billing_request_paid(br_id) or gocardless.is_fulfilled(br_id):
+                accounts.mark_billing_request_paid(br_id)
+                session["paid"] = True
+                session.pop("gc_br", None)
+                return redirect(url_for("index", paid="1"))
+            # Confirmation isn't in yet (the webhook may still be arriving). Don't
+            # fail — show a "verifying…" state and let the client poll. Keep
+            # gc_br on the session so the poll can re-check it.
+            return redirect(url_for("index", verifying="1"))
 
         if provider == "gocardless":
             expected = settings.payment_return_token

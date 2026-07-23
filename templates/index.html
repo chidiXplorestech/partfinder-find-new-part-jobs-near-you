@@ -615,6 +615,17 @@
       </div>
     </div>
 
+    <!-- ================= VERIFYING PAYMENT ================= -->
+    <div id="payVerifyOverlay" class="sheet" hidden>
+      <div class="sheet-backdrop"></div>
+      <div class="sent-card verify-card" role="dialog" aria-modal="true" aria-label="Verifying your payment">
+        <div class="verify-spinner" aria-hidden="true"><span></span></div>
+        <h2 class="sent-title" id="verifyTitle">Verifying your payment…</h2>
+        <p class="sent-copy" id="verifyCopy">Hang tight — we're confirming your £1 unlock with GoCardless. This only takes a moment.</p>
+        <button class="paywall-later" id="verifyDismiss" hidden>Close</button>
+      </div>
+    </div>
+
     <!-- ================= NOTIFICATIONS ================= -->
     <div id="notifSheet" class="sheet" hidden>
       <div class="sheet-backdrop" data-close-sheet></div>

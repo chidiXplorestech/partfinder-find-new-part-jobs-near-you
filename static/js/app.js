@@ -54,6 +54,12 @@
   }
   var saved = load("align.saved", []);
   var applied = load("align.applied", []);
+  // Payment-in-progress marker + poll handles (survive the redirect to GoCardless
+  // and back, and let any tab detect completion). Declared up here so the
+  // payment-return handler below sees the key already assigned.
+  var PAY_AWAIT_KEY = "align.payAwaiting";
+  var payPollTimer = null;
+  var payPollDeadline = 0;
 
   // =======================================================================
   //  Onboarding
@@ -313,7 +319,7 @@
       if (CONFIG.paywallActive && !CONFIG.isPaid) {
         var btn = this; btn.disabled = true; btn.textContent = "One moment…";
         fetch("/api/checkout", { method: "POST" }).then(function (r) { return r.json(); }).then(function (p) {
-          if (p.checkout_url) { window.location.href = p.checkout_url; return; }
+          if (p.checkout_url) { markPayAwaiting(); window.location.href = p.checkout_url; return; }
           btn.disabled = false; btn.textContent = "Get started for £1"; obNext();
         }).catch(function () { btn.disabled = false; btn.textContent = "Get started for £1"; obNext(); });
       } else { obNext(); }
@@ -1018,7 +1024,7 @@
       .then(function (r) { return r.json(); })
       .then(function (payload) {
         if (payload.unlocked) { closePaywall(); runSearch(); return; }
-        if (payload.ok && payload.checkout_url) { window.location.href = payload.checkout_url; return; }
+        if (payload.ok && payload.checkout_url) { markPayAwaiting(); window.location.href = payload.checkout_url; return; }
         throw new Error(payload.error || "Checkout unavailable.");
       })
       .catch(function (err) {
@@ -1033,18 +1039,126 @@
     var params = new URLSearchParams(window.location.search);
     if (params.get("paid") === "1") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
       CONFIG.isPaid = true;
       // Payment succeeded → drop the user straight into the app rather than
       // restarting onboarding (they already created their account pre-paywall).
       if (!onboarding.hidden) startApp();
       toast('Align unlocked <span class="tick">✓</span> Welcome in.');
+    } else if (params.get("verifying") === "1") {
+      // Returned from GoCardless but confirmation is still in flight — show the
+      // verifying overlay and poll until it clears.
+      history.replaceState({}, "", window.location.pathname);
+      showPaymentVerifying();
     } else if (params.get("pay") === "failed") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
       toast("Payment didn't go through — you can try again anytime.");
     } else if (params.get("pay") === "cancelled") {
       history.replaceState({}, "", window.location.pathname);
+      clearPayAwaiting();
+    } else if (isPayAwaiting() && !CONFIG.isPaid) {
+      // A payment was started earlier (maybe in another tab). Quietly check
+      // whether it has since cleared, and enter the app if so.
+      pollOnce().then(function (paid) { if (paid) enterAfterUnlock(); });
     }
   })();
+
+  // =======================================================================
+  //  Payment verification — poll so ANY tab lands back in the app, whether
+  //  payment finished here or in a new tab (the session cookie is shared).
+  //  (PAY_AWAIT_KEY / poll handles are declared in the state section above.)
+  // =======================================================================
+  function markPayAwaiting() { persist(PAY_AWAIT_KEY, Date.now()); }
+  function clearPayAwaiting() { try { localStorage.removeItem(PAY_AWAIT_KEY); } catch (e) {} }
+  function isPayAwaiting() { return !!load(PAY_AWAIT_KEY, 0); }
+
+  function enterAfterUnlock() {
+    CONFIG.isPaid = true;
+    clearPayAwaiting();
+    stopPaymentPoll();
+    if (onboarding && !onboarding.hidden) startApp();
+    else closePaywall();
+  }
+
+  function pollOnce() {
+    return fetch("/api/payment-status", { headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) { return !!(d && d.paid); })
+      .catch(function () { return false; });
+  }
+
+  function stopPaymentPoll() { clearTimeout(payPollTimer); payPollTimer = null; }
+
+  function startPaymentPoll() {
+    stopPaymentPoll();
+    payPollDeadline = Date.now() + 4 * 60 * 1000; // surface a fallback after ~4 min
+    (function tick() {
+      pollOnce().then(function (paid) {
+        if (paid) {
+          if (!$("payVerifyOverlay").hidden) finishVerifyOverlay();
+          else enterAfterUnlock();
+          return;
+        }
+        if (Date.now() > payPollDeadline) {
+          $("verifyTitle").textContent = "Still processing…";
+          $("verifyCopy").textContent =
+            "Your payment is taking a little longer to confirm. Keep this open and we'll unlock automatically, or close and try again.";
+          $("verifyDismiss").hidden = false;
+          payPollTimer = setTimeout(tick, 15000); // slow background poll
+          return;
+        }
+        payPollTimer = setTimeout(tick, 2500);
+      });
+    })();
+  }
+
+  function showPaymentVerifying() {
+    var ov = $("payVerifyOverlay");
+    var card = ov.querySelector(".verify-card");
+    if (card) card.classList.remove("done");
+    $("verifyTitle").textContent = "Verifying your payment…";
+    $("verifyCopy").textContent =
+      "Hang tight — we're confirming your £1 unlock with GoCardless. This only takes a moment.";
+    $("verifyDismiss").hidden = true;
+    ov.hidden = false;
+    if (hasGSAP && !REDUCED_MOTION) {
+      gsap.fromTo(ov.querySelector(".sheet-backdrop"), { opacity: 0 }, { opacity: 1, duration: 0.25 });
+      gsap.fromTo(card, { y: 20, scale: 0.96, opacity: 0 }, { y: 0, scale: 1, opacity: 1, duration: 0.4, ease: "back.out(1.5)" });
+    }
+    startPaymentPoll();
+  }
+
+  function finishVerifyOverlay() {
+    stopPaymentPoll();
+    var ov = $("payVerifyOverlay");
+    var card = ov.querySelector(".verify-card");
+    if (card) card.classList.add("done");
+    $("verifyTitle").textContent = "Payment confirmed";
+    $("verifyCopy").textContent = "You're all set — welcome to Align.";
+    $("verifyDismiss").hidden = true;
+    setTimeout(function () {
+      ov.hidden = true;
+      enterAfterUnlock();
+      toast('Align unlocked <span class="tick">✓</span> Welcome in.');
+    }, 750);
+  }
+
+  $("verifyDismiss").addEventListener("click", function () {
+    $("payVerifyOverlay").hidden = true;
+    stopPaymentPoll();
+  });
+
+  // If payment completes in another tab, catch up when this tab regains focus.
+  function focusRecheck() {
+    if (isPayAwaiting() && !CONFIG.isPaid) {
+      pollOnce().then(function (paid) { if (paid) enterAfterUnlock(); });
+    }
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") focusRecheck();
+  });
+  window.addEventListener("focus", focusRecheck);
 
   // =======================================================================
   //  Controls
