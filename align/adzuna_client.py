@@ -51,6 +51,7 @@ class AdzunaClient:
         results_per_page: int = 50,
         max_days_old: int = 14,
         part_time: bool = True,
+        full_time: bool = False,
         use_category_tag: bool = True,
         where: Optional[str] = None,
     ) -> List[Job]:
@@ -93,6 +94,8 @@ class AdzunaClient:
         }
         if part_time:
             params["part_time"] = 1
+        if full_time:
+            params["full_time"] = 1
         if use_category_tag and mapping.adzuna_tag:
             params["category"] = mapping.adzuna_tag
 

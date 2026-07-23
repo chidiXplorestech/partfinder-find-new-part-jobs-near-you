@@ -41,11 +41,9 @@ MAX_DAYS_OLD: int = 14
 #: Allowed search radii (miles) offered on the home page.
 ALLOWED_RADII: List[int] = [3, 5, 10, 15]
 
-#: Title/description tokens that mark a role as unsuitable (senior / full-time).
-REJECT_KEYWORDS: List[str] = [
-    "full-time",
-    "full time",
-    "fulltime",
+#: Tokens that mark a role as too senior — always rejected, whatever the
+#: user's part-time/full-time preference.
+SENIORITY_KEYWORDS: List[str] = [
     "senior",
     "manager",
     "management",
@@ -56,6 +54,19 @@ REJECT_KEYWORDS: List[str] = [
     "principal",
     "supervisor",
 ]
+
+#: Tokens that mark a role as full-time. Rejected only when the user asked for
+#: part-time work; allowed for the "full-time" and "both" preferences.
+FULLTIME_KEYWORDS: List[str] = [
+    "full-time",
+    "full time",
+    "fulltime",
+]
+
+#: Combined reject list (senior + full-time). Kept for backward compatibility;
+#: :func:`filters.is_seniority_rejected` now consults the two lists above so it
+#: can honour the user's employment preference.
+REJECT_KEYWORDS: List[str] = FULLTIME_KEYWORDS + SENIORITY_KEYWORDS
 
 #: Tokens that positively signal a part-time / student-friendly role.
 KEEP_KEYWORDS: List[str] = [

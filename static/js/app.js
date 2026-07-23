@@ -113,6 +113,10 @@
       el.classList.remove("entering"); void el.offsetWidth; el.classList.add("entering");
     }
     if (el.dataset.step === "splash") runSplash();
+    if (el.dataset.step === "preference" && profile.pref) {
+      var pref = el.querySelector('input[name="obPref"][value="' + profile.pref + '"]');
+      if (pref) pref.checked = true;
+    }
     updateObProgress();
     var focusable = el.querySelector("input");
     if (focusable && el.dataset.step !== "splash") setTimeout(function () { focusable.focus(); }, 260);
@@ -183,31 +187,77 @@
   function wireOnboardingForms() {
     // --- Postcode ---
     var pcInput = $("obPostcode"), pcMsg = $("obPostcodeMsg");
+    var locInput = $("locInput"), locSuccess = $("locSuccess"), locPlace = $("locPlace");
     if (profile.postcode) pcInput.value = profile.postcode;
+
+    // Show the explicit "Location found" confirm state (never silently advance).
+    function showLocationFound(d) {
+      profile.postcode = d.postcode || profile.postcode || "";
+      if (d.lat != null && d.lng != null) profile.origin = { lat: d.lat, lng: d.lng };
+      persist("align.profile", profile);
+      locPlace.textContent = d.place || d.postcode || profile.postcode || "your area";
+      locInput.hidden = true;
+      locSuccess.hidden = false;
+      if (hasGSAP && !REDUCED_MOTION) {
+        gsap.fromTo(locSuccess.querySelector(".loc-pin-badge"), { scale: 0.4, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.5, ease: "back.out(2)" });
+        gsap.from(locSuccess.querySelectorAll(".ob-form-title, .loc-place, .ob-form-sub, .loc-change"), { y: 12, opacity: 0, duration: 0.4, stagger: 0.06, delay: 0.08, ease: "power3.out" });
+      }
+    }
+
     $("obGeoBtn").addEventListener("click", function () {
-      if (!navigator.geolocation) return;
+      if (!navigator.geolocation) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Location isn't available on this device — enter a postcode."; return; }
       pcMsg.hidden = false; pcMsg.className = "ob-hint"; pcMsg.textContent = "Finding your location…";
       navigator.geolocation.getCurrentPosition(function (pos) {
-        profile.origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        pcMsg.className = "ob-hint ok"; pcMsg.textContent = "Location found ✓";
+        // Geolocation granted → reverse-geocode to a postcode and confirm explicitly.
+        fetch("/api/geocode?lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude)
+          .then(function (r) { return r.json(); })
+          .then(function (d) {
+            if (!d.ok) {
+              // Still succeeded at geolocation — keep the raw coords, confirm anyway.
+              showLocationFound({ lat: pos.coords.latitude, lng: pos.coords.longitude, postcode: "", place: "Your current location" });
+              return;
+            }
+            pcMsg.hidden = true;
+            showLocationFound(d);
+          })
+          .catch(function () {
+            showLocationFound({ lat: pos.coords.latitude, lng: pos.coords.longitude, postcode: "", place: "Your current location" });
+          });
       }, function () { pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Couldn't get location — enter a postcode instead."; });
     });
+
     $("obPostcodeNext").addEventListener("click", function () {
       var pc = pcInput.value.trim();
       if (!pc && !profile.origin) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Enter your postcode to find nearby jobs."; return; }
       var btn = this; btn.disabled = true; var lbl = btn.textContent; btn.textContent = "Finding jobs…";
       pcMsg.hidden = true;
-      if (!pc) { profile.postcode = ""; persist("align.profile", profile); btn.disabled = false; btn.textContent = lbl; obNext(); return; }
+      // Already have a resolved location and no new postcode typed — just confirm it.
+      if (!pc) { btn.disabled = false; btn.textContent = lbl; showLocationFound({ postcode: profile.postcode || "", place: profile.postcode || "Your current location" }); return; }
       fetch("/api/geocode?postcode=" + encodeURIComponent(pc))
         .then(function (r) { return r.json(); })
         .then(function (d) {
           btn.disabled = false; btn.textContent = lbl;
           if (!d.ok) { pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = d.error || "We couldn't find that postcode."; return; }
-          profile.postcode = d.postcode; profile.origin = { lat: d.lat, lng: d.lng };
-          persist("align.profile", profile);
-          obNext();
+          showLocationFound(d);
         })
         .catch(function () { btn.disabled = false; btn.textContent = lbl; pcMsg.hidden = false; pcMsg.className = "ob-hint danger"; pcMsg.textContent = "Network error — try again."; });
+    });
+
+    // Confirm state: Continue advances; "Use a different postcode" returns to input.
+    $("locContinue").addEventListener("click", function () { obNext(); });
+    $("locChange").addEventListener("click", function () {
+      locSuccess.hidden = true;
+      locInput.hidden = false;
+      pcMsg.hidden = true;
+      setTimeout(function () { pcInput.focus(); pcInput.select(); }, 80);
+    });
+
+    // --- Job preference (part-time / full-time / both) ---
+    $("obPrefNext").addEventListener("click", function () {
+      var checked = document.querySelector('input[name="obPref"]:checked');
+      profile.pref = checked ? checked.value : "part_time";
+      persist("align.profile", profile);
+      obNext();
     });
 
     // --- Name ---
@@ -318,6 +368,7 @@
       radius: parseInt(data.get("radius"), 10) || 5,
       postcode: profile.postcode || null,
       origin: profile.origin || null,
+      employment: profile.pref || "part_time",
     };
   }
 

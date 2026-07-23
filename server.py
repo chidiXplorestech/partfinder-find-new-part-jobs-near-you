@@ -134,9 +134,14 @@ def create_app() -> Flask:
             olat = olng = None
         postcode = str(data.get("postcode") or "").strip() or None
 
+        employment = str(data.get("employment", "part_time")).strip()
+        if employment not in {"part_time", "full_time", "both"}:
+            employment = "part_time"
+
         query = SearchQuery(
             category=category, days=days, radius=radius,
             origin_lat=olat, origin_lng=olng, postcode=postcode,
+            employment=employment,
         )
         result = orchestrator.search(query)
 

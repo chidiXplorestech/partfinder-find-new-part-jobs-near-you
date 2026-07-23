@@ -58,7 +58,28 @@ def lookup_postcode(postcode: str) -> Dict[str, Any]:
         "postcode": result.get("postcode", pc.upper()),
         "lat": float(lat),
         "lng": float(lng),
+        "place": _place_label(result),
     }
+
+
+def _place_label(result: Dict[str, Any]) -> str:
+    """Build a friendly 'Ward, District' style label from a postcodes.io result.
+
+    Falls back gracefully through the available admin fields so the location
+    success state always has something human to show (e.g. 'Victoria, London').
+    """
+    ward = (result.get("admin_ward") or "").strip()
+    district = (result.get("admin_district") or "").strip()
+    region = (result.get("region") or "").strip()
+    parts = []
+    if ward:
+        parts.append(ward)
+    tail = district or region
+    if tail and tail != ward:
+        parts.append(tail)
+    if not parts and region:
+        parts.append(region)
+    return ", ".join(parts)
 
 
 def reverse_geocode(lat: float, lng: float) -> Dict[str, Any]:
@@ -94,4 +115,5 @@ def reverse_geocode(lat: float, lng: float) -> Dict[str, Any]:
         "postcode": top.get("postcode", ""),
         "lat": float(top.get("latitude", lat_f)),
         "lng": float(top.get("longitude", lng_f)),
+        "place": _place_label(top),
     }

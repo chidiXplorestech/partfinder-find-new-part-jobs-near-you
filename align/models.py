@@ -24,6 +24,8 @@ class SearchQuery:
     origin_lat: Optional[float] = None
     origin_lng: Optional[float] = None
     postcode: Optional[str] = None
+    #: Employment preference: 'part_time' (default), 'full_time' or 'both'.
+    employment: str = "part_time"
 
 
 @dataclass

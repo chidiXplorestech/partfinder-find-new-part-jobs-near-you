@@ -76,24 +76,75 @@
       <!-- 4 · POSTCODE -->
       <div class="ob-step ob-form" data-step="postcode" hidden>
         <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
-        <div class="ob-form-body">
-          <h1 class="ob-form-title">Where are you looking for work?</h1>
-          <p class="ob-form-sub">Enter your postcode and we'll show you jobs near you.</p>
-          <div class="input-wrap">
-            <input type="text" id="obPostcode" class="ob-input" placeholder="Enter postcode" autocomplete="postal-code" inputmode="text" />
-            <button class="input-action" id="obGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+
+        <!-- input state -->
+        <div id="locInput">
+          <div class="ob-form-body">
+            <h1 class="ob-form-title">Where are you looking for <span class="hl">work?</span></h1>
+            <p class="ob-form-sub">Enter your postcode and we'll show you jobs near you.</p>
+            <label class="field-lbl" for="obPostcode">Your postcode</label>
+            <div class="input-wrap has-lead">
+              <span class="input-lead"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.3 7-11a7 7 0 0 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>
+              <input type="text" id="obPostcode" class="ob-input" placeholder="e.g. SW1A 1AA" autocomplete="postal-code" inputmode="text" />
+              <button class="input-action" id="obGeoBtn" type="button" aria-label="Use my location"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg></button>
+            </div>
+            <p class="ob-hint" id="obPostcodeMsg" hidden></p>
+            <div class="map-illus" aria-hidden="true">
+              <div class="map-grid"></div>
+              <div class="map-pulse"></div>
+              <div class="map-pin"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
+            </div>
           </div>
-          <p class="ob-hint" id="obPostcodeMsg" hidden></p>
-          <div class="map-illus" aria-hidden="true">
-            <div class="map-grid"></div>
-            <div class="map-pulse"></div>
-            <div class="map-pin"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
-          </div>
+          <button class="btn-primary btn-cta" id="obPostcodeNext">Find jobs near me</button>
         </div>
-        <button class="btn-primary btn-cta" id="obPostcodeNext">Find jobs near me</button>
+
+        <!-- confirmed state -->
+        <div id="locSuccess" hidden>
+          <div class="ob-form-body loc-found">
+            <div class="loc-pin-badge"><svg viewBox="0 0 24 24" width="30" height="30" fill="currentColor"><path d="M12 2a7 7 0 0 0-7 7c0 5 7 13 7 13s7-8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></div>
+            <h1 class="ob-form-title center">Location found</h1>
+            <p class="loc-place" id="locPlace">—</p>
+            <p class="ob-form-sub center">We'll show you jobs near here.</p>
+            <button type="button" class="link-btn loc-change" id="locChange">Use a different postcode</button>
+          </div>
+          <button class="btn-primary btn-cta" id="locContinue">Continue</button>
+        </div>
       </div>
 
-      <!-- 5 · NAME -->
+      <!-- 5 · JOB PREFERENCE -->
+      <div class="ob-step ob-form" data-step="preference" hidden>
+        <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="ob-form-body">
+          <h1 class="ob-form-title">Choose your <span class="hl">job preference</span></h1>
+          <p class="ob-form-sub">We'll only show you jobs that match how you want to work.</p>
+          <div class="pref-list" role="radiogroup" aria-label="Job preference">
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="part_time" checked />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Part-time</span><span class="pref-d">Weekends, evenings and flexible shifts.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="full_time" />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Full-time</span><span class="pref-d">Regular, full-week roles.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+            <label class="pref-opt">
+              <input type="radio" name="obPref" value="both" />
+              <span class="pref-card">
+                <span class="pref-text"><span class="pref-t">Both</span><span class="pref-d">Show me everything that fits.</span></span>
+                <span class="pref-radio"></span>
+              </span>
+            </label>
+          </div>
+        </div>
+        <button class="btn-primary btn-cta" id="obPrefNext">Continue</button>
+      </div>
+
+      <!-- 6 · NAME -->
       <div class="ob-step ob-form" data-step="name" hidden>
         <button class="ob-top-back" data-ob-back aria-label="Back"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
         <div class="ob-form-body">

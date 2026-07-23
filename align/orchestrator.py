@@ -47,6 +47,7 @@ class _Tier:
     radius: int
     part_time: bool
     use_category_tag: bool
+    full_time: bool = False
     notice: Optional[str] = None
 
 
@@ -60,18 +61,25 @@ class SearchOrchestrator:
         """Run the tiered search pipeline for ``query``."""
         radius = self._validate_radius(query.radius)
         wider = self._next_radius(radius)
+        employment = query.employment or "part_time"
+
+        # The strictest Adzuna employment flag depends on the user's preference.
+        # 'both' asks Adzuna for neither flag so nothing is excluded up front.
+        pt = employment == "part_time"
+        ft = employment == "full_time"
 
         # Tiers from strict -> relaxed. Each later tier loosens one constraint.
         tiers: List[_Tier] = [
-            _Tier(radius, part_time=True, use_category_tag=True),
-            _Tier(radius, part_time=False, use_category_tag=True),
-            _Tier(radius, part_time=False, use_category_tag=False),
+            _Tier(radius, part_time=pt, full_time=ft, use_category_tag=True),
+            _Tier(radius, part_time=False, full_time=False, use_category_tag=True),
+            _Tier(radius, part_time=False, full_time=False, use_category_tag=False),
         ]
         if wider != radius:
             tiers.append(
                 _Tier(
                     wider,
                     part_time=False,
+                    full_time=False,
                     use_category_tag=False,
                     notice=f"Slim pickings nearby — widened the search to {wider} miles.",
                 )
@@ -89,6 +97,7 @@ class SearchOrchestrator:
                     category=query.category,
                     radius_miles=tier.radius,
                     part_time=tier.part_time,
+                    full_time=tier.full_time,
                     use_category_tag=tier.use_category_tag,
                     where=query.postcode or None,
                 )
@@ -102,8 +111,9 @@ class SearchOrchestrator:
             effective_query = SearchQuery(
                 category=query.category, days=query.days, radius=tier.radius,
                 origin_lat=query.origin_lat, origin_lng=query.origin_lng,
+                employment=employment,
             )
-            filtered = filter_jobs(raw, tier.radius, origin)
+            filtered = filter_jobs(raw, tier.radius, origin, employment)
             ranked = rank_jobs(filtered, effective_query)
 
             if len(ranked) > len(best.jobs):
