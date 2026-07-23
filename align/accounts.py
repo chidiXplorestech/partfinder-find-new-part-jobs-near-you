@@ -28,7 +28,7 @@ def _conn() -> sqlite3.Connection:
 
 
 def init_db() -> None:
-    """Create the users table if it doesn't exist."""
+    """Create the tables if they don't exist."""
     with _lock, _conn() as conn:
         conn.execute(
             """
@@ -42,6 +42,42 @@ def init_db() -> None:
             )
             """
         )
+        # Record of GoCardless billing requests confirmed paid (by the webhook or
+        # a verified redirect), so an unlock survives the browser closing the tab.
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS paid_billing_requests (
+                billing_request_id  TEXT PRIMARY KEY,
+                created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+
+
+def mark_billing_request_paid(billing_request_id: str) -> None:
+    """Persist that a GoCardless billing request has been paid (idempotent)."""
+    br_id = (billing_request_id or "").strip()
+    if not br_id:
+        return
+    init_db()
+    with _lock, _conn() as conn:
+        conn.execute(
+            "INSERT OR IGNORE INTO paid_billing_requests (billing_request_id) VALUES (?)",
+            (br_id,),
+        )
+
+
+def is_billing_request_paid(billing_request_id: str) -> bool:
+    """True when the given billing request was previously recorded as paid."""
+    br_id = (billing_request_id or "").strip()
+    if not br_id:
+        return False
+    init_db()
+    with _lock, _conn() as conn:
+        row = conn.execute(
+            "SELECT 1 FROM paid_billing_requests WHERE billing_request_id = ?", (br_id,)
+        ).fetchone()
+    return row is not None
 
 
 def email_valid(email: str) -> bool:

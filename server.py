@@ -36,7 +36,7 @@ from align.config import (
 )
 from align.models import SearchQuery
 from align.orchestrator import SearchOrchestrator
-from align.payments import PaymentError, StripeGateway
+from align.payments import GoCardlessGateway, PaymentError, StripeGateway
 from align import accounts
 from align.geocode import lookup_postcode, reverse_geocode
 
@@ -55,6 +55,7 @@ def create_app() -> Flask:
     client = AdzunaClient(settings)
     orchestrator = SearchOrchestrator(client)
     payments = StripeGateway(settings)
+    gocardless = GoCardlessGateway(settings)
 
     # -------------------------------------------------------------- #
     # Pages
@@ -173,6 +174,21 @@ def create_app() -> Flask:
             session["paid"] = True
             return jsonify({"ok": True, "unlocked": True})
 
+        if settings.payment_provider == "gocardless_api":
+            # Verified mode: create a billing request + hosted flow via the API,
+            # remember its id on the session so we can verify the return trip.
+            base = settings.public_base_url or request.host_url.rstrip("/")
+            try:
+                auth_url, br_id = gocardless.create_billing_request_flow(
+                    success_url=f"{base}/pay/success",
+                    exit_url=f"{base}/pay/cancel",
+                )
+            except PaymentError as exc:
+                logger.warning("GoCardless checkout failed: %s", exc)
+                return jsonify({"ok": False, "error": str(exc)}), 502
+            session["gc_br"] = br_id
+            return jsonify({"ok": True, "checkout_url": auth_url})
+
         if settings.payment_provider == "gocardless":
             # Hosted GoCardless link — just hand the browser straight to it.
             return jsonify(
@@ -199,6 +215,21 @@ def create_app() -> Flask:
         """
         provider = settings.payment_provider
 
+        if provider == "gocardless_api":
+            # Verify against GoCardless: the billing request tied to this session
+            # must actually be fulfilled (or already confirmed by a webhook).
+            br_id = session.get("gc_br") or request.args.get("billing_request_id", "")
+            verified = bool(br_id) and (
+                accounts.is_billing_request_paid(br_id)
+                or gocardless.is_fulfilled(br_id)
+            )
+            if not verified:
+                return redirect(url_for("index", pay="failed"))
+            accounts.mark_billing_request_paid(br_id)
+            session["paid"] = True
+            session.pop("gc_br", None)
+            return redirect(url_for("index", paid="1"))
+
         if provider == "gocardless":
             expected = settings.payment_return_token
             supplied = request.args.get("token", "")
@@ -222,6 +253,28 @@ def create_app() -> Flask:
     def pay_cancel():
         """User backed out of the payment page."""
         return redirect(url_for("index", pay="cancelled"))
+
+    @app.route("/webhooks/gocardless", methods=["POST"])
+    def gocardless_webhook():
+        """Receive and verify GoCardless webhook events.
+
+        The signature is checked against GOCARDLESS_WEBHOOK_SECRET before any
+        event is trusted; fulfilled billing requests are persisted so a payment
+        counts even if the customer never returns to the browser tab. Always
+        returns 2xx quickly on a valid signature (GoCardless retries otherwise).
+        """
+        secret = settings.gocardless_webhook_secret
+        signature = request.headers.get("Webhook-Signature", "")
+        raw = request.get_data()  # exact bytes, required for the HMAC
+        if not GoCardlessGateway.verify_webhook_signature(raw, signature, secret):
+            return jsonify({"ok": False, "error": "Invalid signature."}), 498
+
+        payload = request.get_json(silent=True) or {}
+        events = payload.get("events") or []
+        for br_id in GoCardlessGateway.fulfilled_billing_request_ids(events):
+            accounts.mark_billing_request_paid(br_id)
+            logger.info("GoCardless webhook: billing request %s fulfilled", br_id)
+        return ("", 204)
 
     # -------------------------------------------------------------- #
     # Onboarding: postcode lookup + account creation

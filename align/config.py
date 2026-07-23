@@ -225,9 +225,24 @@ class Settings:
     )
     #: Shared secret appended to the GoCardless success-redirect URL so that
     #: only a genuine post-payment return can unlock access. Optional but
-    #: recommended (see README).
+    #: recommended (see README). Only used in hosted-link mode.
     payment_return_token: str = field(
         default_factory=lambda: os.getenv("PAYMENT_RETURN_TOKEN", "").strip()
+    )
+    #: GoCardless API access token (live_... or sandbox_...). When set, the app
+    #: verifies payments server-side via the GoCardless API instead of trusting
+    #: the redirect. This is a SECRET — env only, never a URL or tracked file.
+    gocardless_access_token: str = field(
+        default_factory=lambda: os.getenv("GOCARDLESS_ACCESS_TOKEN", "").strip()
+    )
+    #: Which GoCardless environment the access token belongs to.
+    gocardless_environment: str = field(
+        default_factory=lambda: (os.getenv("GOCARDLESS_ENVIRONMENT", "live").strip().lower() or "live")
+    )
+    #: Webhook endpoint secret (from the GoCardless dashboard) used to verify the
+    #: signature on incoming webhook events. Required for the webhook endpoint.
+    gocardless_webhook_secret: str = field(
+        default_factory=lambda: os.getenv("GOCARDLESS_WEBHOOK_SECRET", "").strip()
     )
     #: Stripe secret key (fallback payment method if no GoCardless link is set).
     stripe_secret_key: str = field(
@@ -248,7 +263,14 @@ class Settings:
 
     @property
     def payment_provider(self) -> str:
-        """Which payment method is active: 'gocardless', 'stripe' or 'none'."""
+        """Which payment method is active.
+
+        Priority: a GoCardless API access token (verified server-side) beats a
+        bare hosted link (trust/token gated), which beats Stripe.
+        Returns one of: 'gocardless_api', 'gocardless', 'stripe', 'none'.
+        """
+        if self.gocardless_access_token:
+            return "gocardless_api"
         if self.gocardless_payment_link:
             return "gocardless"
         if self.stripe_secret_key:
@@ -256,11 +278,22 @@ class Settings:
         return "none"
 
     @property
+    def gocardless_api_base(self) -> str:
+        """GoCardless REST API base URL for the configured environment."""
+        return (
+            "https://api-sandbox.gocardless.com"
+            if self.gocardless_environment == "sandbox"
+            else "https://api.gocardless.com"
+        )
+
+    @property
     def payment_provider_label(self) -> str:
         """Human-friendly provider name for the UI."""
-        return {"gocardless": "GoCardless", "stripe": "Stripe"}.get(
-            self.payment_provider, ""
-        )
+        return {
+            "gocardless_api": "GoCardless",
+            "gocardless": "GoCardless",
+            "stripe": "Stripe",
+        }.get(self.payment_provider, "")
 
     @property
     def paywall_active(self) -> bool:
