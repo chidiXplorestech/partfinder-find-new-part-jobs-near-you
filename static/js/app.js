@@ -162,16 +162,15 @@
   }
 
   (function initOnboarding() {
-    // Photos are optional. Collapse each photo panel unless a real image has
-    // been dropped into static/img/onboarding/ (so empty gradient blocks don't
-    // show). If an image loads, reveal the panel with it.
+    // Each panel shows a bespoke SVG illustration by default. If a real photo
+    // has been dropped into static/img/onboarding/, use it instead (the
+    // .has-photo class hides the illustration and reveals the background image).
     document.querySelectorAll(".ob-photo[data-img]").forEach(function (ph) {
-      ph.classList.add("is-empty");
       var name = ph.getAttribute("data-img");
       var img = new Image();
       img.onload = function () {
         ph.style.backgroundImage = "url('/static/img/onboarding/" + name + ".jpg')";
-        ph.classList.remove("is-empty");
+        ph.classList.add("has-photo");
       };
       img.src = "/static/img/onboarding/" + name + ".jpg";
     });
