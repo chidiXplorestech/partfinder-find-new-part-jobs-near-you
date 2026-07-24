@@ -124,6 +124,13 @@ button { font: inherit; color: inherit; }
   background-size: cover; background-position: center;
 }
 .ob-photo.tall { height: 62%; }
+/* No real image dropped in static/img/onboarding/ -> collapse the panel
+   entirely instead of showing an empty gradient block, and centre the slide
+   text so it reads as intentional rather than a void at the top. */
+.ob-photo.is-empty { display: none; }
+.ob-photo.is-empty + .ob-slide-body {
+  display: flex; flex-direction: column; justify-content: center;
+}
 .ob-photo-fallback { position: absolute; inset: 0; }
 .grad-a { background: linear-gradient(150deg, #FF7A2E, #FF5F00 55%, #E05400); }
 .grad-b { background: linear-gradient(150deg, #FFC48A, #F79E1B 60%, #E88A00); }

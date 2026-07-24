@@ -156,16 +156,32 @@
     runSplash._t = setTimeout(function () { if (obSteps[obIndex].dataset.step === "splash") obNext(); }, 4000);
   }
 
+  function obStepIndex(name) {
+    for (var i = 0; i < obSteps.length; i++) if (obSteps[i].dataset.step === name) return i;
+    return 0;
+  }
+
   (function initOnboarding() {
-    // Load any photos the user has dropped into static/img/onboarding/.
+    // Photos are optional. Collapse each photo panel unless a real image has
+    // been dropped into static/img/onboarding/ (so empty gradient blocks don't
+    // show). If an image loads, reveal the panel with it.
     document.querySelectorAll(".ob-photo[data-img]").forEach(function (ph) {
+      ph.classList.add("is-empty");
       var name = ph.getAttribute("data-img");
       var img = new Image();
-      img.onload = function () { ph.style.backgroundImage = "url('/static/img/onboarding/" + name + ".jpg')"; };
+      img.onload = function () {
+        ph.style.backgroundImage = "url('/static/img/onboarding/" + name + ".jpg')";
+        ph.classList.remove("is-empty");
+      };
       img.src = "/static/img/onboarding/" + name + ".jpg";
     });
 
-    if (load("align.onboarded", false)) { startApp(); return; }
+    var onboarded = load("align.onboarded", false);
+    var mustPay = CONFIG.paywallActive && !CONFIG.isPaid;
+    // Only skip onboarding when they've finished it AND either the paywall is
+    // off or they've actually paid. Otherwise the paywall must be satisfied.
+    if (onboarded && !mustPay) { startApp(); return; }
+
     onboarding.hidden = false;
     obSteps = Array.prototype.slice.call(document.querySelectorAll("#onboarding .ob-step"));
 
@@ -187,7 +203,9 @@
     });
 
     wireOnboardingForms();
-    obShow(0);
+    // Returning users who still owe the £1 land straight on the paywall step;
+    // brand-new users start at the splash.
+    obShow(onboarded && mustPay ? obStepIndex("offer") : 0);
   })();
 
   function wireOnboardingForms() {
